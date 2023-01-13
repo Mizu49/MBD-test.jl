@@ -1,4 +1,4 @@
-using LinearAlgebra, Plots
+using LinearAlgebra, Plots, BenchmarkTools
 
 M = 10
 C = 0
@@ -25,19 +25,34 @@ function rk4(time, state, Ts)
     return nextstate
 end
 
-timelength = 10
-Ts = 1e-2
+timelength = 500
+Ts = 1e-3
 datanum = Integer(timelength/Ts + 1)
 
 initstate = [1, 0]
-states = [zeros(2) for _ in 1:datanum]
-states[1] = initstate
 
-for idx = 1:datanum-1
+function simA(initstate, Ts, datanum)
     
-    states[idx+1] = rk4(idx*Ts, states[idx], Ts)
+    statesA = [zeros(2) for _ in 1:datanum]
+    statesA[1] = initstate
+    
+    for idx = 1:datanum-1
+        statesA[idx+1] = rk4(idx*Ts, statesA[idx], Ts)
+    end
 
+    return statesA
 end
 
-plot(getindex.(states, 1))
-plot!(getindex.(states, 2))
+function simB(initstate, Ts, datanum)
+
+    statesB = zeros(2, datanum)
+    statesB[:, 1] = initstate
+    for idx = 1:datanum-1 
+        statesB[:, idx+1] = rk4(idx*Ts, statesB[:, idx], Ts)
+    end
+    
+    return statesB
+end
+
+@time statesA = simA(initstate, Ts, datanum)
+@time statesB = simB(initstate, Ts, datanum)
