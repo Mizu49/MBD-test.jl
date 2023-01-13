@@ -54,5 +54,10 @@ function simB(initstate, Ts, datanum)
     return statesB
 end
 
-@time statesA = simA(initstate, Ts, datanum)
-@time statesB = simB(initstate, Ts, datanum)
+function main()
+    
+    @time statesA = simA(initstate, Ts, datanum);
+    @time statesB = simB(initstate, Ts, datanum);
+
+    return
+end
