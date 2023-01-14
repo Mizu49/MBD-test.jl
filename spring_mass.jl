@@ -65,11 +65,25 @@ function simC(initstate, Ts, datanum)
     return statesC
 end
 
+function simD(initstate, Ts, datanum)
+
+    # メモリのアロケーションにとんでもないコストがかかる模様
+    # 使っては行けない
+    statesD = SVector{datanum}(SVector{2}(zeros(2)) for _ in 1:datanum)
+    statesD[1] = initstate
+    for idx = 1:datanum-1 
+        statesD[idx+1] = rk4(idx*Ts, statesD[idx], Ts)
+    end
+    
+    return statesD
+end
+
 function main()
     
     @time statesA = simA(initstate, Ts, datanum);
     @time statesB = simB(initstate, Ts, datanum);
     @time statesC = simC(initstate, Ts, datanum);
+    # @time statesD = simD(initstate, Ts, datanum);
 
     return
 end
