@@ -31,3 +31,33 @@ end
 M1 = M_elem(m1, I1)
 M2 = M_elem(m2, I2)
 M = M_system([M1, M2])
+
+@variables t, q[1:6]
+
+# 拘束条件式
+C = [
+    q[1] - s1 * cos(q[3])
+    q[2] - s1 * sin(q[3])
+    q[1] + (l1 - s1) * cos(q[3]) - q[4] + s2 * cos(q[6])
+    q[2] + (l1 - s1) * sin(q[3]) - q[5] + s2 * sin(q[6])
+]
+
+"""
+    calc_Cq
+
+シンボリック計算によりヤコビアンを計算する関数を返す
+"""
+function calc_Cq(C, q)
+
+    # シンボリック計算によるヤコビアン計算
+    Cq = Symbolics.jacobian(C, q)
+    
+    # 関数として返す
+    expr = build_function(Cq, q)
+    func = eval(expr[1])
+
+    return func
+end
+
+# ヤコビアン
+Cq = calc_Cq(C, q)
