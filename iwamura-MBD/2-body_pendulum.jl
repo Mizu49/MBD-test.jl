@@ -44,6 +44,19 @@ C = [
 # 拘束条件式の次元
 num_con = size(C, 1)
 
+function calc_gamma(q, qdot)
+    
+    gamma = [
+        -s1 * qdot[3]^2 * cos(q[3])
+        -s1 * qdot[3]^2 * sin(q[3])
+        (l1 - s1) * qdot[3]^2 * cos(q[3]) + s2 * qdot[6]^2 * cos(q[6])
+        (l1 - s1) * qdot[3]^2 * sin(q[3]) + s2 * qdot[6]^2 * sin(q[6])
+    ]
+
+    return gamma
+end
+
+
 """
     calc_Cq
 
@@ -70,5 +83,65 @@ sysA = [
     Cq(q) zeros(num_con, num_con)
 ]
 
-# 拡大系の運動方程式に一般化座標を代入
-substitute.(sysA, (Dict(q => rand(6)),))
+
+function EOM(time, state)
+
+    q = state[1:6]
+    qdot = state[7:12]
+
+    # 一般化外力ベクトル
+    Q = [0, -m1*g, 0, 0, -m2*g, 0]
+
+    # 拡大系の運動方程式に一般化座標を代入
+    A = substitute.(sysA, (Dict(q => q),))
+
+    Cdot = Cq(state[1:6]) * qdot
+    
+    gamma = calc_gamma(q, qdot)
+
+    RHS = vcat(Q, gamma)
+
+    accel_lambda  = A \ RHS
+
+    # qdot qddot
+    differential = vcat(qdot, accel_lambda[1:6])
+
+    println(typeof(differential))
+
+    return differential
+end
+
+function runge_kutta(time, state, Ts)
+    
+    k1 = EOM(time, state)
+    k2 = EOM(time + Ts/2, state + Ts/2 * k1)
+    k3 = EOM(time + Ts/2, state + Ts/2 * k2)
+    k4 = EOM(time + Ts  , state + Ts   * k3)
+
+    nextstate = state + Ts/6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+    return nextstate
+end
+
+timelength = 20.0
+Ts = 1e-2
+
+datanum = Integer(timelength / Ts + 1)
+times = 0.0:Ts:timelength
+states = [zeros(6*2) for _ in 1:datanum]
+states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
+
+for idx = 1:datanum-1
+    
+    # SVectorのVectorの要素ににVector{Num}を入れられないことがエラーの原因
+    states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
+
+end
+
+plt = plot()
+plot!(plt, times, getindex.(states, 3), label = "phi1")
+plot!(plt, times, getindex.(states, 6), label = "phi2")
+xlabel!(plt, "Time (s)")
+ylabel!(plt, "Angle (rad)")
+display(plt)
+
