@@ -41,6 +41,8 @@ C = [
     q[1] + (l1 - s1) * cos(q[3]) - q[4] + s2 * cos(q[6])
     q[2] + (l1 - s1) * sin(q[3]) - q[5] + s2 * sin(q[6])
 ]
+# 拘束条件式の次元
+num_con = size(C, 1)
 
 """
     calc_Cq
@@ -61,3 +63,12 @@ end
 
 # ヤコビアン
 Cq = calc_Cq(C, q)
+
+# 拡大系のシステムの運動方程式の構築
+sysA = [
+    M transpose(Cq(q))
+    Cq(q) zeros(num_con, num_con)
+]
+
+# 拡大系の運動方程式に一般化座標を代入
+substitute.(sysA, (Dict(q => rand(6)),))
