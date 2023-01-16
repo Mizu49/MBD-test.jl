@@ -1,4 +1,4 @@
-using Revise, Plots, LinearAlgebra, StaticArrays
+using Revise, Plots, LinearAlgebra, StaticArrays, BlockDiagonals
 
 # パラメータ設定
 l1 = 2.0
@@ -13,55 +13,104 @@ I2 = m2 * l2^2 / 12
 
 g = 9.81
 
+# エレメントの質量行列
+function M_elem(mass, inertia)
+    M = SMatrix{3, 3}(diagm([mass, mass, inertia]))
+    return M
+end
+
+# システムの質量行列
+function func_global_mass(element_masses::Vector{<:AbstractMatrix})
+    # 要素数
+    elemnum = size(element_masses, 1)
+    
+    # ブロック対角行列にする
+    return SMatrix{3 * elemnum, 3 * elemnum}(BlockDiagonal(element_masses))
+end
+
+M1 = M_elem(m1, I1)
+M2 = M_elem(m2, I2)
+
+"""
+拘束条件式
+"""
+function func_constraint(q::SVector{6})::SVector
+    
+    C = SVector{4}([
+        q[1] - s1 * cos(q[3])
+        q[2] - s1 * sin(q[3])
+        q[1] + (l1 - s1) * cos(q[3]) - q[4] + s2 * cos(q[6])
+        q[2] + (l1 - s1) * sin(q[3]) - q[5] + s2 * sin(q[6])
+    ])
+
+    return C
+end
+
+function func_jacobian(q::SVector{6})::SMatrix
+    
+    # ヤコビアン
+    Cq = SMatrix{4, 6}([
+        1 0  s1 * sin(q[3])        0   0   0
+        0 1 -s1 * cos(q[3])        0   0   0
+        1 0 -(l1 - s1) * sin(q[3]) -1  0   -s2 * sin(q[6])
+        0 1 (l1 - s1) * cos(q[3])  0   -1  s2 * cos(q[6])
+    ])
+
+    return Cq
+end
+
+"""
+ベクトル γ
+"""
+function func_gamma(q, qdot)
+    
+    gamma = [
+        -s1 * qdot[3]^2 * cos(q[3])
+        -s1 * qdot[3]^2 * sin(q[3])
+        (l1 - s1) * qdot[3]^2 * cos(q[3]) + s2 * qdot[6]^2 * cos(q[6])
+        (l1 - s1) * qdot[3]^2 * sin(q[3]) + s2 * qdot[6]^2 * sin(q[6])
+    ]
+
+    return gamma
+end
+
+"""
+一般化外力
+"""
+function func_external_force()::SVector
+
+    Q = SVector{6}([0, -m1*g, 0, 0, -m2*g, 0])
+    
+    return Q
+end
+
 function EOM(time, state)
     
-    x1      = state[1]
-    y1      = state[2]
-    phi1    = state[3]
-    x2      = state[4]
-    y2      = state[5]
-    phi2    = state[6]
-    x1dot   = state[7]
-    y1dot   = state[8]
-    phi1dot = state[9]
-    x2dot   = state[10]
-    y2dot   = state[11]
-    phi2dot = state[12]
+    # 状態量をパースする
+    q    = SVector{6}(state[1:6])
+    qdot = SVector{6}(state[7:12])
 
     # 一般化質量行列
-    M = diagm([m1, m1, I1, m2, m2, I2])
-    # 一般化外力ベクトル
-    Q = [0, -m1*g, 0, 0, -m2*g, 0]
-    # 拘束条件式
-    C = [
-        x1 - s1 * cos(phi1)
-        y1 - s1 * sin(phi1)
-        x1 + (l1 - s1) * cos(phi1) - x2 + s2 * cos(phi2)
-        y1 + (l1 - s1) * sin(phi1) - y2 + s2 * sin(phi2)
-    ]
+    M = func_global_mass([M1, M2])
 
+    # 一般化外力ベクトル
+    Q = func_external_force()
+
+    # 拘束条件式
+    C = func_constraint(q)
+    
     # ヤコビアン
-    Cq = [
-        1 0  s1 * sin(phi1)        0   0   0
-        0 1 -s1 * cos(phi1)        0   0   0
-        1 0 -(l1 - s1) * sin(phi1) -1  0   -s2 * sin(phi2)
-        0 1 (l1 - s1) * cos(phi1)  0   -1  s2 * cos(phi2)
-    ]
+    Cq = func_jacobian(q)
+    
+    Cdot = Cq * qdot
+
+    Gm = func_gamma(q, qdot)
 
     A = [
         M  transpose(Cq)
         Cq zeros(4, 4)
     ]
     
-    Cdot = Cq * state[7:12]
-
-    Gm = [
-        -s1 * phi1dot^2 * cos(phi1)
-        -s1 * phi1dot^2 * sin(phi1)
-        (l1 - s1) * phi1dot^2 * cos(phi1) + s2 * phi2dot^2 * cos(phi2)
-        (l1 - s1) * phi1dot^2 * sin(phi1) + s2 * phi2dot^2 * sin(phi2)
-    ]
-
     # バウムガルテの安定化法
     alpha = 10
     beta = 10
@@ -72,7 +121,7 @@ function EOM(time, state)
     accel_lambda  = A \ RHS
 
     # qdot qddot
-    differential = vcat(state[7:12], accel_lambda[1:6])
+    differential = vcat(qdot, accel_lambda[1:6])
 
     return differential
 end
