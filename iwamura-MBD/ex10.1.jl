@@ -1,4 +1,4 @@
-using Plots, LinearAlgebra
+using Revise, Plots, LinearAlgebra, StaticArrays
 
 # パラメータ設定
 l1 = 2.0
