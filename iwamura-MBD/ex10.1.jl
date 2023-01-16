@@ -94,11 +94,15 @@ Ts = 1e-2
 
 datanum = Integer(timelength / Ts + 1)
 times = 0.0:Ts:timelength
-states = [zeros(6*2) for _ in 1:datanum]
+states = [SVector{12}(zeros(6*2)) for _ in 1:datanum]
 states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
+accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
 for idx = 1:datanum-1
     
+    accel[idx] = states[idx][7:12]
+
+    # time evolution
     states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
 
 end
