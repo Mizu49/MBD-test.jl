@@ -148,8 +148,12 @@ states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
 accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
 for idx = 1:datanum-1
-    
-    accel[idx] = states[idx][7:12]
+
+    gamma = func_gamma(states[idx][1:6], states[idx][7:12])
+    Cq = func_jacobian(SVector{6}(states[idx][1:6]))
+
+    # ここは疑似逆行列でいいのか？？？
+    accel[idx] = pinv(Cq) * gamma
 
     # time evolution
     states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
