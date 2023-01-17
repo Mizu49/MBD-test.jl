@@ -138,40 +138,44 @@ function runge_kutta(time, state, Ts)
     return nextstate
 end
 
-timelength = 20.0
-Ts = 1e-2
+function main()
+    timelength = 20.0
+    Ts = 1e-2
 
-datanum = Integer(timelength / Ts + 1)
-times = 0.0:Ts:timelength
-states = [SVector{12}(zeros(6*2)) for _ in 1:datanum]
-states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
-accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
+    datanum = Integer(timelength / Ts + 1)
+    times = 0.0:Ts:timelength
+    states = [SVector{12}(zeros(6*2)) for _ in 1:datanum]
+    states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
+    accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
-for idx = 1:datanum-1
+    for idx = 1:datanum-1
 
-    gamma = func_gamma(states[idx][1:6], states[idx][7:12])
-    Cq = func_jacobian(SVector{6}(states[idx][1:6]))
+        gamma = func_gamma(states[idx][1:6], states[idx][7:12])
+        Cq = func_jacobian(SVector{6}(states[idx][1:6]))
 
-    # ここは疑似逆行列でいいのか？？？
-    accel[idx] = pinv(Cq) * gamma
+        # ここは疑似逆行列でいいのか？？？
+        accel[idx] = pinv(Cq) * gamma
 
-    # time evolution
-    states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
+        # time evolution
+        states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
 
+    end
+
+    fig1 = plot()
+    plot!(fig1, times, getindex.(states, 3), label = "phi1")
+    plot!(fig1, times, getindex.(states, 6), label = "phi2")
+    xlabel!(fig1, "Time (s)")
+    ylabel!(fig1, "Angle (rad)")
+    title!(fig1, "Angle of joint")
+    display(fig1)
+
+    fig2 = plot()
+    plot!(fig2, times, getindex.(accel, 3), label = "phi1 accel")
+    plot!(fig2, times, getindex.(accel, 6), label = "phi2 accel")
+    xlabel!(fig2, "Time (s)")
+    ylabel!(fig2, "Angular acceleration (rad/s^2)")
+    title!(fig2, "Angular acceleration")
+    display(fig2)
 end
 
-fig1 = plot()
-plot!(fig1, times, getindex.(states, 3), label = "phi1")
-plot!(fig1, times, getindex.(states, 6), label = "phi2")
-xlabel!(fig1, "Time (s)")
-ylabel!(fig1, "Angle (rad)")
-title!(fig1, "Angle of joint")
-display(fig1)
-
-fig2 = plot()
-plot!(fig2, times, getindex.(accel, 3), label = "phi1 accel")
-plot!(fig2, times, getindex.(accel, 6), label = "phi2 accel")
-xlabel!(fig2, "Time (s)")
-ylabel!(fig2, "Angular acceleration (rad/s^2)")
-title!(fig2, "Angular acceleration")
-display(fig2)
+main()
