@@ -160,9 +160,18 @@ for idx = 1:datanum-1
 
 end
 
-plt = plot()
-plot!(plt, times, getindex.(states, 3), label = "phi1")
-plot!(plt, times, getindex.(states, 6), label = "phi2")
-xlabel!(plt, "Time (s)")
-ylabel!(plt, "Angle (rad)")
-display(plt)
+fig1 = plot()
+plot!(fig1, times, getindex.(states, 3), label = "phi1")
+plot!(fig1, times, getindex.(states, 6), label = "phi2")
+xlabel!(fig1, "Time (s)")
+ylabel!(fig1, "Angle (rad)")
+title!(fig1, "Angle of joint")
+display(fig1)
+
+fig2 = plot()
+plot!(fig2, times, getindex.(accel, 3), label = "phi1 accel")
+plot!(fig2, times, getindex.(accel, 6), label = "phi2 accel")
+xlabel!(fig2, "Time (s)")
+ylabel!(fig2, "Angular acceleration (rad/s^2)")
+title!(fig2, "Angular acceleration")
+display(fig2)
