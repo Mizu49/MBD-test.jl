@@ -133,12 +133,15 @@ function runge_kutta(time, state, Ts)
     k3 = EOM(time + Ts/2, state + Ts/2 * k2)
     k4 = EOM(time + Ts  , state + Ts   * k3)
 
-    differential = 1/6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    nextstate = state + Ts/6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+    return nextstate
+end
+
+function calc_acceleration(time, state)
+    differential = EOM(time, state)
     accel = differential[7:12]
-
-    nextstate = state + Ts * differential
-
-    return (nextstate, accel)
+    return accel
 end
 
 function main()
@@ -154,12 +157,16 @@ function main()
 
     for idx = 1:datanum-1
 
+        # DAEから加速度を計算
+        accel[idx] = calc_acceleration(times[idx], states[idx])
+
+        # 後退差分で加速度を計算
         if idx != 1
             accel2[idx] = (states[idx][7:12] - states[idx-1][7:12]) ./ Ts
         end
 
         # time evolution
-        (states[idx+1], accel[idx]) = runge_kutta(times[idx], states[idx], Ts)
+        states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
 
     end
 
