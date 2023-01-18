@@ -147,14 +147,13 @@ function main()
     states = [SVector{12}(zeros(6*2)) for _ in 1:datanum]
     states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
     accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
+    accel2 = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
     for idx = 1:datanum-1
 
-        gamma = func_gamma(states[idx][1:6], states[idx][7:12])
-        Cq = func_jacobian(SVector{6}(states[idx][1:6]))
-
-        # ここは疑似逆行列でいいのか？？？
-        accel[idx] = pinv(Cq) * gamma
+        if idx != 1
+            accel2[idx] = (states[idx][7:12] - states[idx-1][7:12]) ./ Ts
+        end
 
         # time evolution
         states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
@@ -172,6 +171,8 @@ function main()
     fig2 = plot()
     plot!(fig2, times, getindex.(accel, 3), label = "phi1 accel")
     plot!(fig2, times, getindex.(accel, 6), label = "phi2 accel")
+    plot!(fig2, times, getindex.(accel2, 3), label = "phi1 accel 2")
+    plot!(fig2, times, getindex.(accel2, 6), label = "phi2 accel 2")
     xlabel!(fig2, "Time (s)")
     ylabel!(fig2, "Angular acceleration (rad/s^2)")
     title!(fig2, "Angular acceleration")
