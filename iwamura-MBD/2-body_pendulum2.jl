@@ -133,9 +133,12 @@ function runge_kutta(time, state, Ts)
     k3 = EOM(time + Ts/2, state + Ts/2 * k2)
     k4 = EOM(time + Ts  , state + Ts   * k3)
 
-    nextstate = state + Ts/6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    differential = 1/6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    accel = differential[7:12]
 
-    return nextstate
+    nextstate = state + Ts * differential
+
+    return (nextstate, accel)
 end
 
 function main()
@@ -156,10 +159,11 @@ function main()
         end
 
         # time evolution
-        states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
+        (states[idx+1], accel[idx]) = runge_kutta(times[idx], states[idx], Ts)
 
     end
 
+    plotlyjs()
     fig1 = plot()
     plot!(fig1, times, getindex.(states, 3), label = "phi1")
     plot!(fig1, times, getindex.(states, 6), label = "phi2")
