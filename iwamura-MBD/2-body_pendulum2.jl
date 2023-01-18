@@ -188,6 +188,18 @@ function main()
     ylabel!(fig2, "Angular acceleration (rad/s^2)")
     title!(fig2, "Angular acceleration")
     display(fig2)
+
+    gr()
+    anim = @animate for idx = 1:10:datanum
+        snapshot = plot()
+        plot!(snapshot, [states[idx][1]], [states[idx][2]], seriestype=:scatter, label = "body 1")
+        plot!(snapshot, [states[idx][4]], [states[idx][5]], seriestype=:scatter, label = "body 2")
+        xlims!(snapshot, -4, 4)
+        ylims!(snapshot, -4, 0.5)
+        plot!(snapshot, legend=:outerbottom, framestyle = :origin)
+    end
+    gif(anim, "anim.gif", fps = 15)
+
 end
 
 main()
