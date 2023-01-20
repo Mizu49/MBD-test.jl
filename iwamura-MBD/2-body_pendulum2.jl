@@ -144,6 +144,30 @@ function calc_acceleration(time, state)
     return accel
 end
 
+function plot_2body_pendulum(q)
+
+    phi1 = q[3]
+    phi2 = q[6]
+
+    f = Figure()
+    ax = Axis(f[1, 1])
+    b1_p1 = Point(0.0, 0.0)
+    b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1));
+    b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
+    b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2));
+    
+    poly!(Polygon([b1_p1, b1_p2]), color = :red, strokecolor = :red, strokewidth = 1)
+    poly!(Polygon([b2_p1, b2_p2]), color = :red, strokecolor = :blue, strokewidth = 1)
+    
+    xlims!(-4, 4)
+    ylims!(-4, 0.5)
+    vlines!(ax, 0, color = :black)
+    hlines!(ax, 0, color = :black)
+    # hidespines!(ax)
+
+    return f
+end
+
 function main()
     timelength = 20.0
     Ts = 1e-2
@@ -155,7 +179,7 @@ function main()
     accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
     accel2 = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
-    for idx = 1:datanum-1
+    @time for idx = 1:datanum-1
 
         # DAEから加速度を計算
         accel[idx] = calc_acceleration(times[idx], states[idx])
@@ -198,7 +222,7 @@ function main()
     # end
     # gif(anim, "anim.gif", fps = 15)
 
-    return figures
+    return (states, figures)
 end
 
-figures = main()
+(states, figures) = main();
