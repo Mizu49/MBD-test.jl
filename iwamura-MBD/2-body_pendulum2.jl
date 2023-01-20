@@ -1,4 +1,4 @@
-using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals
+using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasics
 
 # パラメータ設定
 l1 = 2.0
@@ -144,28 +144,29 @@ function calc_acceleration(time, state)
     return accel
 end
 
-function plot_2body_pendulum(q)
+function plot_2body_pendulum!(f, q, time)
 
     phi1 = q[3]
     phi2 = q[6]
 
-    f = Figure()
+    empty!(f) # 前の描画を削除する
     ax = Axis(f[1, 1])
     b1_p1 = Point(0.0, 0.0)
     b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1));
     b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
     b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2));
     
-    poly!(Polygon([b1_p1, b1_p2]), color = :red, strokecolor = :red, strokewidth = 1)
-    poly!(Polygon([b2_p1, b2_p2]), color = :red, strokecolor = :blue, strokewidth = 1)
+    b1_poly = poly!(Polygon([b1_p1, b1_p2]), color = :red, strokecolor = :red, strokewidth = 1)
+    b2_poly = poly!(Polygon([b2_p1, b2_p2]), color = :red, strokecolor = :blue, strokewidth = 1)
     
     xlims!(-4, 4)
     ylims!(-4, 0.5)
     vlines!(ax, 0, color = :black)
     hlines!(ax, 0, color = :black)
-    # hidespines!(ax)
+    hidespines!(ax)
+    ax.title = "Time: $time (s)"
 
-    return f
+    return
 end
 
 function main()
@@ -212,15 +213,18 @@ function main()
 
     figures = [fig1, fig2]
 
-    # anim = @animate for idx = 1:10:datanum
-    #     snapshot = plot()
-    #     plot!(snapshot, [states[idx][1]], [states[idx][2]], seriestype=:scatter, label = "body 1")
-    #     plot!(snapshot, [states[idx][4]], [states[idx][5]], seriestype=:scatter, label = "body 2")
-    #     xlims!(snapshot, -4, 4)
-    #     ylims!(snapshot, -4, 0.5)
-    #     plot!(snapshot, legend=:outerbottom, framestyle = :origin)
-    # end
-    # gif(anim, "anim.gif", fps = 15)
+    print("Generating animation...")
+
+    snapshot = Figure()
+    frames = 1:10:datanum
+    record(snapshot, "video.mp4", frames; framerate = 10) do i # i = frame number
+        
+        plot_2body_pendulum!(snapshot, states[i][1:6], times[i])
+
+        # any other manipulation of the figure here...
+    end # for each step of this loop, a frame is recorded
+
+    println("done!")
 
     return (states, figures)
 end
