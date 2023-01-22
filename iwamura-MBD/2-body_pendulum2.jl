@@ -144,29 +144,83 @@ function calc_acceleration(time, state)
     return accel
 end
 
-function plot_2body_pendulum!(f, q, time)
+function generate_animation1(times, states)
 
-    phi1 = q[3]
-    phi2 = q[6]
+    function plot_2body_pendulum!(f, q, time)
 
-    empty!(f) # 前の描画を削除する
+        phi1 = q[3]
+        phi2 = q[6]
+    
+        empty!(f) # 前の描画を削除する
+        ax = Axis(f[1, 1], aspect=DataAspect())
+        b1_p1 = Point(0.0, 0.0)
+        b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1));
+        b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
+        b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2));
+       
+        b1_poly = poly!(Polygon([b1_p1, b1_p2]), color = :transparent , strokecolor = :red, strokewidth = 5)
+        b2_poly = poly!(Polygon([b2_p1, b2_p2]), color = :transparent , strokecolor = :blue, strokewidth = 5)
+        
+        xlims!(-4, 4)
+        ylims!(-4, 0.5)
+        vlines!(ax, 0, color = :black)
+        hlines!(ax, 0, color = :black)
+        hidespines!(ax)
+        ax.title = "Time: $time (s)"
+    
+        return
+    end
+    
+    snapshot = Figure()
+    frames = 1:10:size(times, 1)
+    record(snapshot, "video.mp4", frames; framerate = 10) do i # i = frame number
+        
+        plot_2body_pendulum!(snapshot, states[i][1:6], times[i])
+
+        # any other manipulation of the figure here...
+    end # for each step of this loop, a frame is recorded
+end
+
+function generate_animation2(times, states)
+
+    function get_current_point(times, states, idx)        
+        phi1 = states[idx][3]
+        phi2 = states[idx][6]
+        currenttime = times[idx]
+    
+        b1_p1 = Point(0.0, 0.0)
+        b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1))
+        b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
+        b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2))
+
+        return (currenttime, b1_p1, b1_p2, b2_p1, b2_p2)
+    end
+    
+    (currenttime, b1_p1, b1_p2, b2_p1, b2_p2) = get_current_point(times, states, 1)
+
+    f = Figure()
     ax = Axis(f[1, 1], aspect=DataAspect())
-    b1_p1 = Point(0.0, 0.0)
-    b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1));
-    b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
-    b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2));
+
+    b1_polygon = Observable(Polygon([b1_p1, b1_p2]))
+    b2_polygon = Observable(Polygon([b2_p1, b2_p2]))
    
-    b1_poly = poly!(Polygon([b1_p1, b1_p2]), color = :transparent , strokecolor = :red, strokewidth = 5)
-    b2_poly = poly!(Polygon([b2_p1, b2_p2]), color = :transparent , strokecolor = :blue, strokewidth = 5)
+    b1_poly = poly!(b1_polygon, color = :transparent , strokecolor = :red, strokewidth = 5)
+    b2_poly = poly!(b2_polygon, color = :transparent , strokecolor = :blue, strokewidth = 5)
     
     xlims!(-4, 4)
     ylims!(-4, 0.5)
     vlines!(ax, 0, color = :black)
     hlines!(ax, 0, color = :black)
     hidespines!(ax)
-    ax.title = "Time: $time (s)"
 
-    return
+
+    record(f, "video2.mp4", 1:10:size(times, 1); framerate = 10) do i
+        (currenttime, b1_p1, b1_p2, b2_p1, b2_p2) = get_current_point(times, states, i)
+        b1_polygon[] = Polygon([b1_p1, b1_p2])
+        b2_polygon[] = Polygon([b2_p1, b2_p2])
+        ax.title = "Time: $currenttime (s)"
+    end
+
 end
 
 function main()
@@ -180,7 +234,8 @@ function main()
     accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
     accel2 = [SVector{6}(zeros(6)) for _ in 1:datanum]
 
-    @time for idx = 1:datanum-1
+    print("Running simulation ...")
+    simtime = @elapsed for idx = 1:datanum-1
 
         # DAEから加速度を計算
         accel[idx] = calc_acceleration(times[idx], states[idx])
@@ -194,6 +249,7 @@ function main()
         states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
 
     end
+    println("done!")
 
     fig1 = Figure()
     ax1 = Axis(fig1[1, 1])
@@ -213,18 +269,15 @@ function main()
 
     figures = [fig1, fig2]
 
-    print("Generating animation...")
-
-    snapshot = Figure()
-    frames = 1:10:datanum
-    record(snapshot, "video.mp4", frames; framerate = 10) do i # i = frame number
-        
-        plot_2body_pendulum!(snapshot, states[i][1:6], times[i])
-
-        # any other manipulation of the figure here...
-    end # for each step of this loop, a frame is recorded
-
+    print("Generating animation 1 ...")
+    anim1_time = @elapsed generate_animation1(times, states)
     println("done!")
+    
+    print("Generating animation 2 ...")
+    anim2_time = @elapsed generate_animation2(times, states)
+    println("done!")
+
+    println("simulation: $simtime (s) / anim1: $anim1_time (s) / anim2: $anim2_time (s)")
 
     return (states, figures)
 end
