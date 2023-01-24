@@ -1,38 +1,15 @@
-using Revise
-using GLMakie
-using GeometryBasics
+using GeometryBasics, GLMakie
 
-l1 = 2
-l2 = 2
 
-function plot_2body_pendulum(q)
+polygon = Rect3(0.0, 0.0, 0.0, 0.75, 0.5, 0.5)
 
-    phi1 = q[3]
-    phi2 = q[6]
+f1 = Figure()
+ax1 = Axis3(f1[1, 1]) # 3D plotする時はAxis3で3次元の軸を作る
+poly!(ax1, polygon, color=:blue, linewidth=2)
 
-    f = Figure()
-    ax = Axis(f[1, 1])
-    b1_p1 = Point(0.0, 0.0)
-    b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1));
-    b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
-    b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2));
-    
-    poly!(Polygon([b1_p1, b1_p2]), color = :red, strokecolor = :red, strokewidth = 1)
-    poly!(Polygon([b2_p1, b2_p2]), color = :red, strokecolor = :blue, strokewidth = 1)
-    
-    xlims!(-4, 4)
-    ylims!(-4, 0.5)
-    vlines!(ax, 0, color = :black)
-    hlines!(ax, 0, color = :black)
-    # hidespines!(ax)
+f2 = Figure()
+ax2 = Axis3(f2[1, 1]) # 3D plotする時はAxis3で3次元の軸を作る
+mesh!(ax2, polygon, color=:blue, linewidth=2)
 
-    return f
-end
-
-q = zeros(6)
-q[3] = 7.7/4 * pi
-q[6] = 5/4 * pi
-
-f = plot_2body_pendulum(q)
-
-display(f)
+display(f1)
+display(f2)
