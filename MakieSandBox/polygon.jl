@@ -1,5 +1,8 @@
 using GeometryBasics, GLMakie, FileIO
 
+# show in VScode plot navigator
+Makie.inline!(true)
+
 bunny = load("Stanford_Bunny.stl")
 
 @time begin
