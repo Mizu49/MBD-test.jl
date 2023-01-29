@@ -1,23 +1,5 @@
 using GLMakie, GeometryBasics
 
-theta = pi/4
-C = [
-    1          0           0
-    0 cos(theta) -sin(theta)
-    0 sin(theta)  cos(theta)
-]
-
-points = [
-    Point3{Float64}(C * [ 0.5,  0.5,  0.5]),
-    Point3{Float64}(C * [-0.5,  0.5,  0.5]),
-    Point3{Float64}(C * [-0.5, -0.5,  0.5]),
-    Point3{Float64}(C * [ 0.5, -0.5,  0.5]),
-    Point3{Float64}(C * [ 0.5,  0.5, -0.5]),
-    Point3{Float64}(C * [-0.5,  0.5, -0.5]),
-    Point3{Float64}(C * [-0.5, -0.5, -0.5]),
-    Point3{Float64}(C * [ 0.5, -0.5, -0.5])
-]
-
 faces = [
     1 2 3
     3 4 1
@@ -33,6 +15,27 @@ faces = [
     3 6 7
 ]
 
+function rotate_cube(theta)
+    C = [
+        1          0           0
+        0 cos(theta) -sin(theta)
+        0 sin(theta)  cos(theta)
+    ]
+    
+    points = [
+        Point3{Float64}(C * [ 0.5,  0.5,  0.5]),
+        Point3{Float64}(C * [-0.5,  0.5,  0.5]),
+        Point3{Float64}(C * [-0.5, -0.5,  0.5]),
+        Point3{Float64}(C * [ 0.5, -0.5,  0.5]),
+        Point3{Float64}(C * [ 0.5,  0.5, -0.5]),
+        Point3{Float64}(C * [-0.5,  0.5, -0.5]),
+        Point3{Float64}(C * [-0.5, -0.5, -0.5]),
+        Point3{Float64}(C * [ 0.5, -0.5, -0.5])
+    ]        
+end
+
+points = Observable(rotate_cube(0))
+
 fig = Figure()
 ax = Axis3(
     fig[1, 1],
@@ -41,6 +44,11 @@ ax = Axis3(
     aspect = :data,
     viewmode = :fit
     )
-mesh!(ax, points, faces, color=:yellow, shading = true)
+mesh!(ax, points, faces, color = :blue ,shading = true)
 
-display(fig)
+ratio = pi/30
+
+iter = 0:60
+record(fig, "animation.gif", iter; framerate = 30) do idx
+    points[] = rotate_cube(ratio * idx)
+end
