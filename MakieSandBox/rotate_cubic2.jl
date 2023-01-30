@@ -46,7 +46,10 @@ ax = Axis3(
     )
 mesh!(ax, points, faces, color = :blue ,shading = true)
 
-ratio = pi/30
+hidedecorations!(ax)
+hidespines!(ax)
+
+ratio = pi/60
 
 iter = 0:60
 record(fig, "animation.gif", iter; framerate = 30) do idx
