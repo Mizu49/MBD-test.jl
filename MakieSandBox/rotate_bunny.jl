@@ -1,4 +1,4 @@
-using GeometryBasics, GLMakie, FileIO
+using GeometryBasics, GLMakie, FileIO, Statistics
 
 # overload the multiplication operator 
 Base.:*(C::AbstractMatrix, points::AbstractVector{<:AbstractPoint{Dim, T}}) where {Dim, T} = map(point -> Point{Dim, T}(C * point) , points)
@@ -6,6 +6,8 @@ Base.:*(C::AbstractMatrix, points::AbstractVector{<:AbstractPoint{Dim, T}}) wher
 bunny = load("Stanford_Bunny.stl")
 
 bunny_points = decompose(Point3f, bunny)
+bunny_points = bunny_points .- mean(bunny_points)
+
 bunny_faces  = decompose(GLTriangleFace, bunny)
 
 function rotate_bunny(points, theta)
@@ -22,14 +24,31 @@ end
 
 points = Observable(bunny_points)
 
+slim = 60.0
+
+xy_plane = Point{3, Float32}[(slim, slim, 0), (-slim, slim, 0), (-slim, -slim, 0), (slim, -slim, 0)]
+yz_plane = Point{3, Float32}[(0, slim, slim), (0, -slim, slim), (0, -slim, -slim), (0, slim, -slim)]
+zx_plane = Point{3, Float32}[(slim, 0, slim), (-slim, 0, slim), (-slim, 0, -slim), (slim, 0, -slim)]
+plane = [
+    1 2 3
+    1 3 4
+]
+
 fig = Figure(resolution = (600, 600))
 ax = Axis3(
     fig[1, 1],
     aspect = :data,
     viewmode = :fit,
-    limits = (-100, 100, -100, 100, 0, 100)
+    limits = (-slim, slim, -slim, slim, -slim, slim)
 )
 mesh!(ax, points, bunny_faces, color=:blue, linewidth=2)
+
+poly!(ax, xy_plane, plane, color = (:gray, 0.2))
+poly!(ax, yz_plane, plane, color = (:gray, 0.2))
+poly!(ax, zx_plane, plane, color = (:gray, 0.2))
+
+hidedecorations!(ax)
+hidespines!(ax)
 
 ratio = 2 * pi / 60
 
