@@ -29,7 +29,7 @@ slim = 60.0
 xy_plane = Point{3, Float32}[(slim, slim, 0), (-slim, slim, 0), (-slim, -slim, 0), (slim, -slim, 0)]
 yz_plane = Point{3, Float32}[(0, slim, slim), (0, -slim, slim), (0, -slim, -slim), (0, slim, -slim)]
 zx_plane = Point{3, Float32}[(slim, 0, slim), (-slim, 0, slim), (-slim, 0, -slim), (slim, 0, -slim)]
-plane = [
+plane_connectivity = [
     1 2 3
     1 3 4
 ]
@@ -43,9 +43,9 @@ ax = Axis3(
 )
 mesh!(ax, points, bunny_faces, color=:blue, linewidth=2)
 
-poly!(ax, xy_plane, plane, color = (:gray, 0.2))
-poly!(ax, yz_plane, plane, color = (:gray, 0.2))
-poly!(ax, zx_plane, plane, color = (:gray, 0.2))
+poly!(ax, xy_plane, plane_connectivity, color = (:gray, 0.2))
+poly!(ax, yz_plane, plane_connectivity, color = (:gray, 0.2))
+poly!(ax, zx_plane, plane_connectivity, color = (:gray, 0.2))
 
 hidedecorations!(ax)
 hidespines!(ax)
@@ -53,6 +53,6 @@ hidespines!(ax)
 ratio = 2 * pi / 60
 
 iter = 0:120
-record(fig, "animation.gif", iter; framerate = 20) do idx
+@time record(fig, "animation.gif", iter; framerate = 20) do idx
     points[] = rotate_bunny(points[], ratio)
 end
