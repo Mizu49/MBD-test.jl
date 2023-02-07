@@ -1,4 +1,4 @@
-using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasics
+using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasics, Symbolics
 
 # パラメータ設定
 l1 = 2.0
@@ -12,6 +12,33 @@ m2 = 0.5
 I2 = m2 * l2^2 / 12
 
 g = 9.81
+
+@variables t, sym_q[1:7]
+sym_q = collect(sym_q)
+
+# オイラーパラメータ -> BRF
+A_1 = [
+    (1 -2 * sym_q[6]^2 -2 * sym_q[7]^2) (2 * (sym_q[5] * sym_q[6] - sym_q[4] * sym_q[7])) (2 * (sym_q[5] * sym_q[7] + sym_q[4] * sym_q[6]))
+    (2 * (sym_q[5] * sym_q[6] + sym_q[4] * sym_q[7])) (1 -2 * sym_q[5]^2 -2 * sym_q[7]^2) (2 * (sym_q[6] * sym_q[7] - sym_q[4] * sym_q[5])) 
+    (2 * (sym_q[4] * sym_q[6] - sym_q[4] * sym_q[6])) (2 * (sym_q[6] * sym_q[7] + sym_q[4] * sym_q[5])) (1 -2 * sym_q[4]^2 -2 * sym_q[5]^2)
+]
+
+# BRF -> point
+u_bar_1 = [0, 0, s1]
+
+# 拘束条件のシンボリック表現
+C = [
+    sym_q[1:3] - A_1 * u_bar_1
+    transpose(sym_q[1:3]) * sym_q[1:3]  - s1^2
+]
+
+# ヤコビアンのシンボリック表現
+Cq = Symbolics.jacobian(C, sym_q)
+Ct = Symbolics.jacobian(C, [t])
+
+# シンボリック表現を関数化
+func_constraint = eval(build_function(C, sym_q)[1])
+func_jacobian = eval(build_function(Cq, sym_q)[1])
 
 # エレメントの質量行列
 function M_elem(mass, inertia)
@@ -30,34 +57,6 @@ end
 
 M1 = M_elem(m1, I1)
 M2 = M_elem(m2, I2)
-
-"""
-拘束条件式
-"""
-function func_constraint(q::SVector{6})::SVector
-    
-    C = SVector{4}([
-        q[1] - s1 * cos(q[3])
-        q[2] - s1 * sin(q[3])
-        q[1] + (l1 - s1) * cos(q[3]) - q[4] + s2 * cos(q[6])
-        q[2] + (l1 - s1) * sin(q[3]) - q[5] + s2 * sin(q[6])
-    ])
-
-    return C
-end
-
-function func_jacobian(q::SVector{6})::SMatrix
-    
-    # ヤコビアン
-    Cq = SMatrix{4, 6}([
-        1 0  s1 * sin(q[3])        0   0   0
-        0 1 -s1 * cos(q[3])        0   0   0
-        1 0 -(l1 - s1) * sin(q[3]) -1  0   -s2 * sin(q[6])
-        0 1 (l1 - s1) * cos(q[3])  0   -1  s2 * cos(q[6])
-    ])
-
-    return Cq
-end
 
 """
 ベクトル γ
@@ -138,53 +137,6 @@ function runge_kutta(time, state, Ts)
     return nextstate
 end
 
-function calc_acceleration(time, state)
-    differential = EOM(time, state)
-    accel = differential[7:12]
-    return accel
-end
-
-function generate_animation(times, states)
-
-    function get_current_point(times, states, idx)        
-        phi1 = states[idx][3]
-        phi2 = states[idx][6]
-        currenttime = times[idx]
-    
-        b1_p1 = Point(0.0, 0.0)
-        b1_p2 = Point(l1 * cos(phi1), l1 * sin(phi1))
-        b2_p1 = Point(l1 * cos(phi1), l1 * sin(phi1))
-        b2_p2 = Point(l1 * cos(phi1) + l2 * cos(phi2), l1 * sin(phi1) + l2 * sin(phi2))
-
-        return (currenttime, b1_p1, b1_p2, b2_p1, b2_p2)
-    end
-    
-    (currenttime, b1_p1, b1_p2, b2_p1, b2_p2) = get_current_point(times, states, 1)
-
-    f = Figure()
-    ax = Axis(f[1, 1], aspect=DataAspect())
-
-    b1_polygon = Observable(Polygon([b1_p1, b1_p2]))
-    b2_polygon = Observable(Polygon([b2_p1, b2_p2]))
-   
-    b1_poly = poly!(b1_polygon, color = :transparent , strokecolor = :red, strokewidth = 5)
-    b2_poly = poly!(b2_polygon, color = :transparent , strokecolor = :blue, strokewidth = 5)
-    
-    xlims!(-4, 4)
-    ylims!(-4, 0.5)
-    vlines!(ax, 0, color = :black)
-    hlines!(ax, 0, color = :black)
-    hidespines!(ax)
-
-
-    record(f, "anim.gif", 1:10:size(times, 1); framerate = 10) do i
-        (currenttime, b1_p1, b1_p2, b2_p1, b2_p2) = get_current_point(times, states, i)
-        b1_polygon[] = Polygon([b1_p1, b1_p2])
-        b2_polygon[] = Polygon([b2_p1, b2_p2])
-        ax.title = "Time: $currenttime (s)"
-    end
-
-end
 
 function main()
     timelength = 20.0
@@ -241,4 +193,4 @@ function main()
     return (states, figures)
 end
 
-(states, figures) = main();
+# (states, figures) = main();
