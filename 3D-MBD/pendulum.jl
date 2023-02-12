@@ -32,9 +32,18 @@ C = [
     transpose(sym_q[1:3]) * sym_q[1:3]  - s1^2
 ]
 
+# 時間微分オペレータ
+D = Differential(t)
+
 # ヤコビアンのシンボリック表現
 Cq = Symbolics.jacobian(C, sym_q)
-Ct = Symbolics.jacobian(C, [t])
+Ct = expand_derivatives.(D.(C))
+
+# 拘束力
+Qc1 = Symbolics.jacobian(- Cq * sym_qdot, sym_q) * sym_qdot
+Qc2 = expand_derivatives.(-2 * D.(Cq) * sym_qdot)
+Qc3 = expand_derivatives.(- D.(Ct))
+Qc = Qc1 + Qc2 + Qc3
 
 # シンボリック表現を関数化
 func_constraint = eval(build_function(C, sym_q)[1])
