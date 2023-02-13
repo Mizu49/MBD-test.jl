@@ -1,5 +1,7 @@
 using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasics, Symbolics
 
+include("rotation_utilities.jl")
+
 # パラメータ設定
 l1 = 2.0
 s1 = l1/2
@@ -146,7 +148,11 @@ function main()
 
     # Static simulation
     println("Begin static analysis")
-    init_q = [s1 * cos(pi/4), s1 * sin(pi/4), 0.0, 0.0, 0.0, 0.0, 1.0]
+
+    init_transposi = [s1 * cos(pi/4), s1 * sin(pi/4), 0.0]
+    init_eulerparam = dcm2quaternion(C2(pi/4) * C1(pi/4))
+
+    init_q = vcat(init_transposi, init_eulerparam)
 
     iter = 0
     isconv = false
