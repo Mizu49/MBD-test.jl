@@ -124,7 +124,7 @@ function EOM(time, state)
     accel_lambda  = A \ RHS
 
     # qdot qddot
-    differential = vcat(qdot, accel_lambda[1:6])
+    differential = vcat(qdot, accel_lambda[1:dim_coordinate])
 
     return differential
 end
@@ -143,16 +143,54 @@ end
 
 
 function main()
+
+    # Static simulation
+    println("Begin static analysis")
+    init_q = [s1 * cos(pi/4), s1 * sin(pi/4), 0.0, 0.0, 0.0, 0.0, 1.0]
+
+    iter = 0
+    isconv = false
+    while (iter < 100) && isconv == false
+        
+        println(iter)
+
+        currentC  = func_constraint(init_q)
+        currentCq = func_jacobian(init_q)
+
+        dq = - pinv(currentCq) * currentC
+        init_q = init_q + dq
+
+        isconv_array = [false for _ in 1:size(currentC, 1)]
+        for j = 1:(size(currentC, 1))
+            if (abs(currentC[j, 1]) < 1e-5)
+                isconv_array[j] = true 
+            end
+        end
+
+        if all(isconv_array)
+            is_conv = true
+            println("finish!")
+            break
+        else
+            iter = iter + 1
+        end
+    end
+
+    println("init coordinate: $init_q")
+
+    # Dynamic simulation
+
+
     timelength = 20.0
-    Ts = 5e-5
+    Ts = 1e-3
 
     datanum = Integer(timelength / Ts + 1)
     times = 0.0:Ts:timelength
     states = [SVector{dim_coordinate * 2}(zeros(dim_coordinate * 2)) for _ in 1:datanum]
-    states[1] = vcat([s1 * cos(pi/4), s1 * sin(pi/4), 0.0, 0.0, 0.0, 0.0, 0.0], zeros(dim_coordinate))
+    states[1] = vcat(init_q, zeros(dim_coordinate))
     accel = [SVector{dim_coordinate}(zeros(dim_coordinate)) for _ in 1:datanum]
 
-    print("Running simulation ...")
+    print("Running dynamics simulation ...")
     simtime = @elapsed for idx = 1:datanum-1
 
         # DAEから加速度を計算
@@ -164,31 +202,28 @@ function main()
     end
     println("done!")
 
+    # plot of x, y, z position
     fig1 = Figure()
-    ax1 = Axis(fig1[1, 1])
-    lines!(ax1, times, getindex.(states, 3))
-    lines!(ax1, times, getindex.(states, 6))
-    ax1.xlabel = "Time (s)"
-    ax1.ylabel = "Angle (rad)"
+    ax1 = Axis(
+        fig1[1, 1],
+        xlabel = "Time (s)",
+        ylabel = "Position (m)"
+    )
 
-    fig2 = Figure()
-    ax2 = Axis(fig2[1, 1])
-    lines!(ax2, times, getindex.(accel, 3))
-    lines!(ax2, times, getindex.(accel, 6))
-    lines!(ax2, times, getindex.(accel2, 3))
-    lines!(ax2, times, getindex.(accel2, 6))
-    ax2.xlabel = "Time (s)"
-    ax2.ylabel = "Angular acceleration (rad/s^2)"
+    x_position = getindex.(states, 1)
+    y_position = getindex.(states, 2)
+    z_position = getindex.(states, 3)
 
-    figures = [fig1, fig2]
+    lines!(ax1, times, x_position, label = "x-position")
+    lines!(ax1, times, y_position, label = "y-position")
+    lines!(ax1, times, z_position, label = "z-position")
+    axislegend(ax1)
 
-    print("Generating animation ...")
-    anim_time = @elapsed generate_animation(times, states)
-    println("done!")
-
-    println("simulation: $simtime (s) / animation: $anim_time (s)")
+    figures = [fig1]
 
     return (states, figures)
 end
 
 (states, figures) = main();
+
+display(figures[1])
