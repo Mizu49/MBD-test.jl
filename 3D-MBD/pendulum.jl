@@ -13,8 +13,11 @@ I2 = m2 * l2^2 / 12
 
 g = 9.81
 
-@variables t, sym_q[1:7]
+dim_coordinate = 7
+
+@variables t, sym_q[1:7], sym_qdot[1:7]
 sym_q = collect(sym_q)
+sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
 A_1 = [
@@ -48,46 +51,38 @@ Qc = Qc1 + Qc2 + Qc3
 # シンボリック表現を関数化
 func_constraint = eval(build_function(C, sym_q)[1])
 func_jacobian = eval(build_function(Cq, sym_q)[1])
+func_Qc = eval(build_function(Qc, t, sym_q, sym_qdot)[1])
 
-# エレメントの質量行列
-function M_elem(mass, inertia)
-    M = SMatrix{3, 3}(diagm([mass, mass, inertia]))
-    return M
+
+function G_bar(q::Vector)
+    
+    return SMatrix{3, 4}(2 * [
+        -q[2] q[1] q[4] -q[3]
+        -q[3] -q[4] q[1] q[2]
+        -q[4] q[3] -q[2] q[1]
+    ])
+
 end
 
 # システムの質量行列
-function func_global_mass(element_masses::Vector{<:AbstractMatrix})
-    # 要素数
-    elemnum = size(element_masses, 1)
+function func_global_mass(q::AbstractVector)
     
-    # ブロック対角行列にする
-    return SMatrix{3 * elemnum, 3 * elemnum}(BlockDiagonal(element_masses))
+    m_trans = diagm([m1, m1, m1])
+
+    m_rot = transpose(G_bar(q[4:7])) * diagm([I1, I1, I1]) * G_bar(q[4:7])
+
+    globalM = SMatrix{7, 7}(BlockDiagonal([m_trans, m_rot]))
+
+    return globalM
 end
 
-M1 = M_elem(m1, I1)
-M2 = M_elem(m2, I2)
-
-"""
-ベクトル γ
-"""
-function func_gamma(q, qdot)
-    
-    gamma = [
-        -s1 * qdot[3]^2 * cos(q[3])
-        -s1 * qdot[3]^2 * sin(q[3])
-        (l1 - s1) * qdot[3]^2 * cos(q[3]) + s2 * qdot[6]^2 * cos(q[6])
-        (l1 - s1) * qdot[3]^2 * sin(q[3]) + s2 * qdot[6]^2 * sin(q[6])
-    ]
-
-    return gamma
-end
 
 """
 一般化外力
 """
 function func_external_force()::SVector
 
-    Q = SVector{6}([0, -m1*g, 0, 0, -m2*g, 0])
+    Q = SVector{7}([0, 0, -m1*g, 0, 0, 0, 0])
     
     return Q
 end
@@ -95,11 +90,11 @@ end
 function EOM(time, state)
     
     # 状態量をパースする
-    q    = SVector{6}(state[1:6])
-    qdot = SVector{6}(state[7:12])
+    q    = SVector{dim_coordinate}(state[1:dim_coordinate])
+    qdot = SVector{dim_coordinate}(state[(dim_coordinate+1):end])
 
     # 一般化質量行列
-    M = func_global_mass([M1, M2])
+    M = func_global_mass(q)
 
     # 一般化外力ベクトル
     Q = func_external_force()
@@ -112,7 +107,7 @@ function EOM(time, state)
     
     Cdot = Cq * qdot
 
-    Gm = func_gamma(q, qdot)
+    Gm = func_Qc(0, q, qdot)
 
     A = [
         M  transpose(Cq)
@@ -149,25 +144,19 @@ end
 
 function main()
     timelength = 20.0
-    Ts = 1e-2
+    Ts = 5e-5
 
     datanum = Integer(timelength / Ts + 1)
     times = 0.0:Ts:timelength
-    states = [SVector{12}(zeros(6*2)) for _ in 1:datanum]
-    states[1] = vcat([l1/2, 0.0, 0.0, l1 + l2/2, 0.0, 0.0], zeros(6))
-    accel = [SVector{6}(zeros(6)) for _ in 1:datanum]
-    accel2 = [SVector{6}(zeros(6)) for _ in 1:datanum]
+    states = [SVector{dim_coordinate * 2}(zeros(dim_coordinate * 2)) for _ in 1:datanum]
+    states[1] = vcat([s1 * cos(pi/4), s1 * sin(pi/4), 0.0, 0.0, 0.0, 0.0, 0.0], zeros(dim_coordinate))
+    accel = [SVector{dim_coordinate}(zeros(dim_coordinate)) for _ in 1:datanum]
 
     print("Running simulation ...")
     simtime = @elapsed for idx = 1:datanum-1
 
         # DAEから加速度を計算
-        accel[idx] = calc_acceleration(times[idx], states[idx])
-
-        # 後退差分で加速度を計算
-        if idx != 1
-            accel2[idx] = (states[idx][7:12] - states[idx-1][7:12]) ./ Ts
-        end
+        # accel[idx] = calc_acceleration(times[idx], states[idx])
 
         # time evolution
         states[idx+1] = runge_kutta(times[idx], states[idx], Ts)
@@ -202,4 +191,4 @@ function main()
     return (states, figures)
 end
 
-# (states, figures) = main();
+(states, figures) = main();
