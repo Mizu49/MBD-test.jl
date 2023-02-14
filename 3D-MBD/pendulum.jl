@@ -149,8 +149,8 @@ function main()
     # Static simulation
     println("Begin static analysis")
 
-    init_transposi = [s1 * cos(pi/4), s1 * sin(pi/4), 0.0]
-    init_eulerparam = dcm2quaternion(C2(pi/4) * C1(pi/4))
+    init_transposi = [s1, 0.0, 0.0]
+    init_eulerparam = dcm2quaternion(C2(-pi/2) * C1(1e-3))
 
     init_q = vcat(init_transposi, init_eulerparam)
 
