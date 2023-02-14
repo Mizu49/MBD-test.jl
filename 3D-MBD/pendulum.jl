@@ -25,7 +25,7 @@ sym_qdot = collect(sym_qdot)
 A_1 = [
     (1 -2 * sym_q[6]^2 -2 * sym_q[7]^2) (2 * (sym_q[5] * sym_q[6] - sym_q[4] * sym_q[7])) (2 * (sym_q[5] * sym_q[7] + sym_q[4] * sym_q[6]))
     (2 * (sym_q[5] * sym_q[6] + sym_q[4] * sym_q[7])) (1 -2 * sym_q[5]^2 -2 * sym_q[7]^2) (2 * (sym_q[6] * sym_q[7] - sym_q[4] * sym_q[5])) 
-    (2 * (sym_q[4] * sym_q[6] - sym_q[4] * sym_q[6])) (2 * (sym_q[6] * sym_q[7] + sym_q[4] * sym_q[5])) (1 -2 * sym_q[4]^2 -2 * sym_q[5]^2)
+    (2 * (sym_q[5] * sym_q[7] - sym_q[4] * sym_q[6])) (2 * (sym_q[6] * sym_q[7] + sym_q[4] * sym_q[5])) (1 -2 * sym_q[5]^2 -2 * sym_q[6]^2)
 ]
 
 # BRF -> point
@@ -33,7 +33,7 @@ u_bar_1 = [0, 0, s1]
 
 # 拘束条件のシンボリック表現
 C = [
-    sym_q[1:3] - A_1 * u_bar_1
+    sym_q[1:3] + A_1 * u_bar_1
     transpose(sym_q[1:3]) * sym_q[1:3]  - s1^2
 ]
 
