@@ -149,8 +149,8 @@ function main()
     # Static simulation
     println("Begin static analysis")
 
-    init_transposi = [s1, 0.0, 0.0]
-    init_eulerparam = dcm2quaternion(C2(-pi/2) * C1(1e-3))
+    init_transposi = [s1 * cos(pi/4), s1 * sin(pi/4), 0]
+    init_eulerparam = dcm2quaternion(C1(pi/4) * C2(pi/4))
 
     init_q = vcat(init_transposi, init_eulerparam)
 
@@ -168,7 +168,7 @@ function main()
 
         isconv_array = [false for _ in 1:size(currentC, 1)]
         for j = 1:(size(currentC, 1))
-            if (abs(currentC[j, 1]) < 1e-5)
+            if (abs(currentC[j, 1]) < 1e-10)
                 isconv_array[j] = true 
             end
         end
