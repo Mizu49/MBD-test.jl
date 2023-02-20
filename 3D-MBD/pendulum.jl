@@ -23,9 +23,9 @@ sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
 A_1 = [
-    (1 -2 * sym_q[6]^2 -2 * sym_q[7]^2) (2 * (sym_q[5] * sym_q[6] - sym_q[4] * sym_q[7])) (2 * (sym_q[5] * sym_q[7] + sym_q[4] * sym_q[6]))
-    (2 * (sym_q[5] * sym_q[6] + sym_q[4] * sym_q[7])) (1 -2 * sym_q[5]^2 -2 * sym_q[7]^2) (2 * (sym_q[6] * sym_q[7] - sym_q[4] * sym_q[5])) 
-    (2 * (sym_q[5] * sym_q[7] - sym_q[4] * sym_q[6])) (2 * (sym_q[6] * sym_q[7] + sym_q[4] * sym_q[5])) (1 -2 * sym_q[5]^2 -2 * sym_q[6]^2)
+    (sym_q[4]^2 - sym_q[5]^2 - sym_q[6]^2 + sym_q[7]^2) 2*(sym_q[4]*sym_q[5] + sym_q[6]*sym_q[7]) 2*(sym_q[4]*sym_q[6] - sym_q[5]*sym_q[7]);
+    2*(sym_q[4]*sym_q[5] - sym_q[6]*sym_q[7]) (sym_q[5]^2 - sym_q[4]^2 - sym_q[6]^2 + sym_q[7]^2) 2*(sym_q[5]*sym_q[6] + sym_q[4]*sym_q[7]);
+    2*(sym_q[4]*sym_q[6] + sym_q[5]*sym_q[7]) 2*(sym_q[5]*sym_q[6] - sym_q[4]*sym_q[7]) sym_q[6]^2 - sym_q[4]^2 - sym_q[5]^2 + sym_q[7]^2
 ]
 
 # BRF -> point
@@ -59,9 +59,9 @@ func_Qc = eval(build_function(Qc, t, sym_q, sym_qdot)[1])
 function G_bar(q::Vector)
     
     return SMatrix{3, 4}(2 * [
-        -q[2] q[1] q[4] -q[3]
-        -q[3] -q[4] q[1] q[2]
-        -q[4] q[3] -q[2] q[1]
+        q[4] q[3] -q[2] -q[1]
+        -q[3] q[4] q[1] -q[2]
+        q[2] -q[1] q[4] -q[3]
     ])
 
 end
@@ -149,8 +149,10 @@ function main()
     # Static simulation
     println("Begin static analysis")
 
-    init_transposi = [s1 * cos(pi/4), s1 * sin(pi/4), 0]
-    init_eulerparam = dcm2quaternion(C1(pi/4) * C2(pi/4))
+    dcm = C3(pi/4) * C1(pi/2)
+
+    init_transposi = dcm * [0, 0, -s1]
+    init_eulerparam = dcm2quaternion(dcm)
 
     init_q = vcat(init_transposi, init_eulerparam)
 
