@@ -2,6 +2,9 @@ using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasi
 
 include("rotation_utilities.jl")
 
+include("MultiBodySystems.jl")
+using .MultiBodySystems
+
 # パラメータ設定
 l1 = 2.0
 s1 = l1/2
