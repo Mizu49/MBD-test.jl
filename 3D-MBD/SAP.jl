@@ -114,7 +114,7 @@ function EOM(time, state)
 
     A = [
         M  transpose(Cq)
-        Cq zeros(5, 5)
+        Cq zeros(size(Cq, 1), size(Cq, 1))
     ]
     
     # バウムガルテの安定化法
@@ -238,4 +238,5 @@ end
 
 (states, figures) = main();
 
+Makie.inline!(true)
 display(figures[1])
