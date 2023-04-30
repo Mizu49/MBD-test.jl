@@ -121,10 +121,13 @@ function EOM(time, state)
     beta = 10
     Gm = Gm - 2 * alpha * Cdot - beta^2 * C
 
+    # DAEの右辺を計算する
     RHS = vcat(Q, Gm)
 
+    # 線形方程式を解いて一般化加速度とラグランジュ乗数を得る
     accel_lambda  = A \ RHS
 
+    # 微分方程式の時間発展計算する 
     # qdot qddot
     differential = vcat(qdot, accel_lambda[1:dim_coordinate])
 
