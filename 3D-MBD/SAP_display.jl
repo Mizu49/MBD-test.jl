@@ -45,17 +45,33 @@ end
 
 params = PolygonPlate(l1, l1, 0.01)
 
-q = states[10000]
+q = states[5000]
 
 (points, faces) = polygon_plate(q, params)
 
 fig = Figure()
 ax = Axis3(
     fig[1, 1],
-    # elevation = pi/6,
-    # azimuth   = pi/4,
+    # xlabel = "x label",
+    # ylabel = "y label",
+    # zlabel = "z label",
+    elevation = pi/6,
+    azimuth   = pi/4,
     aspect = :data,
-    viewmode = :fit
-    )
+    viewmode = :fit,
+    limits = (-1.2, 1.2, -1.2, 1.2, -1.2, 1.2)
+)
+hidespines!(ax)
+hidedecorations!(ax)
+
+# Axis
+lines!(ax, [-1.2, 1.2], [0.0, 0.0], [0.0, 0.0], linestyle = :dash, color = :black, linewidth = 1)
+lines!(ax, [0.0, 0.0], [-1.2, 1.2], [0.0, 0.0], linestyle = :dash, color = :black, linewidth = 1)
+lines!(ax, [0.0, 0.0], [0.0, 0.0], [-1.2, 1.2], linestyle = :dash, color = :black, linewidth = 1)
+
+# 平板のプロットを実行
 mesh!(ax, points, faces, color=:blue, shading = true)
 
+# プロット結果の表示
+Makie.inline!(false)
+display(fig)
