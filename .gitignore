@@ -26,3 +26,6 @@ Manifest.toml
 # generated files
 *.gif
 *.mp4
+
+# VScode files
+.vscode*
