@@ -9,9 +9,6 @@ end
 
 function polygon_plate(pos::AbstractVector, p::PolygonPlate)
    
-
-    println(pos[1:3])
-
     C = quaternion2dcm(pos[4:7])
 
     points = hcat(
@@ -46,8 +43,9 @@ end
 params = PolygonPlate(l1, l1, 0.01)
 
 q = states[5000]
-
 (points, faces) = polygon_plate(q, params)
+
+obs_points = Observable(points)
 
 fig = Figure()
 ax = Axis3(
@@ -70,8 +68,13 @@ lines!(ax, [0.0, 0.0], [-1.2, 1.2], [0.0, 0.0], linestyle = :dash, color = :blac
 lines!(ax, [0.0, 0.0], [0.0, 0.0], [-1.2, 1.2], linestyle = :dash, color = :black, linewidth = 1)
 
 # 平板のプロットを実行
-mesh!(ax, points, faces, color=:blue, shading = true)
+mesh!(ax, obs_points, faces, color=:blue, shading = true)
 
-# プロット結果の表示
-Makie.inline!(false)
-display(fig)
+iter = 1:100:size(states, 1)
+record(fig, "animation.gif", iter, framerate = 15) do idx
+
+    q = states[idx]
+    (points, faces) = polygon_plate(q, params)
+
+    obs_points[] = points
+end
