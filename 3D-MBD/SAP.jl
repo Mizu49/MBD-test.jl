@@ -86,7 +86,7 @@ end
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
     force = [0, 0, 0]
-    torque = transpose(G_bar(state[4:7])) * [0.11, 1, 0]
+    torque = transpose(G_bar(state[4:7])) * [0, 0.05, 0]
     
     Q = SVector{7}(vcat(force, torque))
     
@@ -236,10 +236,10 @@ function main()
 
     figures = [fig1]
 
-    return (states, figures)
+    return (times, states, figures)
 end
 
-(states, figures) = main();
+(times, states, figures) = main();
 
 Makie.inline!(true)
 display(figures[1])

@@ -76,5 +76,7 @@ record(fig, "animation.gif", iter, framerate = 15) do idx
     q = states[idx]
     (points, faces) = polygon_plate(q, params)
 
+    ax.title = "Time: $(times[idx]) (s)"
+
     obs_points[] = points
 end
