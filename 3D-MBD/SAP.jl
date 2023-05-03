@@ -28,12 +28,12 @@ A_1 = [
     2*(sym_q[4]*sym_q[6] + sym_q[5]*sym_q[7]) 2*(sym_q[5]*sym_q[6] - sym_q[4]*sym_q[7]) sym_q[6]^2 - sym_q[4]^2 - sym_q[5]^2 + sym_q[7]^2
 ]
 
-# BRF -> point
-u_bar_1 = [0, s1, 0]
+# Body 1の原点から拘束点への相対位置ベクトル
+u_bar_1 = [0, -s1, 0]
 
 # 拘束条件のシンボリック表現
 C = [
-    sym_q[1:3] - A_1 * u_bar_1
+    sym_q[1:3] + A_1 * u_bar_1 - (zeros(3)) # 位置に対する拘束
     transpose([1, 0, 0]) * (A_1 * [0, 1, 0]) # Revolute joint 1
     transpose([1, 0, 0]) * (A_1 * [0, 0, 1]) # Revolute joint 2
     sym_q[2]^2 + sym_q[3]^2 - (s1)^2
