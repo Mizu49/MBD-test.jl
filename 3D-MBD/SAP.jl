@@ -83,9 +83,12 @@ end
 """
 一般化外力
 """
-function func_external_force(time::Real)::SVector
+function func_external_force(time::Real, state::AbstractVector)::SVector
 
-    Q = SVector{7}([0, 0, -m1 * g, 0, 0, 0, 0])
+    force = [0, 0, -10 * (state[3] - (-0.3))]
+    torque = zeros(4)
+    
+    Q = SVector{7}(vcat(force, torque))
     
     return Q
 end
@@ -100,7 +103,7 @@ function EOM(time, state)
     M = func_global_mass(q)
 
     # 一般化外力ベクトル
-    Q = func_external_force(time)
+    Q = func_external_force(time, state)
 
     # 拘束条件式
     C = func_constraint(q)
