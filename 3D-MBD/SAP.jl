@@ -34,7 +34,7 @@ u_bar_1 = [0, s1, 0]
 # 拘束条件のシンボリック表現
 C = [
     sym_q[1:3] - A_1 * u_bar_1
-    sym_q[1]
+    transpose([1, 0, 0]) * sym_q[1:3]
     sym_q[2]^2 + sym_q[3]^2 - (s1)^2
 ]
 
@@ -85,8 +85,8 @@ end
 """
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
-    force = [0, 0, -10 * (state[3] - (-0.3))]
-    torque = zeros(4)
+    force = [0, 0, 0]
+    torque = transpose(G_bar(state[4:7])) * [0.11, 1, 0]
     
     Q = SVector{7}(vcat(force, torque))
     
