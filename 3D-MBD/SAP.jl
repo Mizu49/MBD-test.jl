@@ -35,6 +35,7 @@ u_bar_1 = [0, s1, 0]
 C = [
     sym_q[1:3] - A_1 * u_bar_1
     transpose([1, 0, 0]) * sym_q[1:3]
+    transpose([1, 0, 0]) * (A_1 * [0, 0, 1])
     sym_q[2]^2 + sym_q[3]^2 - (s1)^2
 ]
 
@@ -85,8 +86,8 @@ end
 """
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
-    force = [0, 0, 0]
-    torque = transpose(G_bar(state[4:7])) * [0, 0.05, 0]
+    force = [0.1, 0.1, 0.1]
+    torque = transpose(G_bar(state[4:7])) * [1, 0.05, 0.05]
     
     Q = SVector{7}(vcat(force, torque))
     
