@@ -34,8 +34,8 @@ u_bar_1 = [0, s1, 0]
 # 拘束条件のシンボリック表現
 C = [
     sym_q[1:3] - A_1 * u_bar_1
-    transpose([1, 0, 0]) * sym_q[1:3]
-    transpose([1, 0, 0]) * (A_1 * [0, 0, 1])
+    transpose([1, 0, 0]) * (A_1 * [0, 1, 0]) # Revolute joint 1
+    transpose([1, 0, 0]) * (A_1 * [0, 0, 1]) # Revolute joint 2
     sym_q[2]^2 + sym_q[3]^2 - (s1)^2
 ]
 
