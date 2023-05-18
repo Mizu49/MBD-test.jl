@@ -36,7 +36,7 @@ C = [
     sym_q[1:3] + A_1 * u_bar_1 - (zeros(3)) # 位置に対する拘束
     transpose([1, 0, 0]) * (A_1 * [0, 1, 0]) # Revolute joint 1
     transpose([1, 0, 0]) * (A_1 * [0, 0, 1]) # Revolute joint 2
-    sym_q[2]^2 + sym_q[3]^2 - (s1)^2
+    transpose(sym_q[1:3]) * sym_q[1:3] - s1^2
 ]
 
 # 時間微分オペレータ
