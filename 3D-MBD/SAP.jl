@@ -87,7 +87,7 @@ end
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
     force = [0.1, 0.1, 0.1]
-    torque = transpose(G_bar(state[4:7])) * [1, 0.05, 0.05]
+    torque = transpose(G_bar(state[4:7])) * [0.25, 0.05, 0.05]
     
     Q = SVector{7}(vcat(force, torque))
     
