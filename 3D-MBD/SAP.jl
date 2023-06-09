@@ -1,6 +1,7 @@
 using Revise, GLMakie, LinearAlgebra, StaticArrays, BlockDiagonals, GeometryBasics, Symbolics
 
-include("rotation_utilities.jl")
+include("RotationUtilities.jl")
+using .RotationUtilities
 
 # パラメータ設定
 l1 = 1.0
@@ -15,18 +16,15 @@ I2 = m2 * l2^2 / 12
 
 g = 9.81
 
+num_bodies = 1
 dim_coordinate = 7
 
-@variables t, sym_q[1:7], sym_qdot[1:7]
+@variables t, sym_q[1:(dim_coordinate * num_bodies)], sym_qdot[1:(dim_coordinate * num_bodies)]
 sym_q = collect(sym_q)
 sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
-A_1 = [
-    (sym_q[4]^2 - sym_q[5]^2 - sym_q[6]^2 + sym_q[7]^2) 2*(sym_q[4]*sym_q[5] + sym_q[6]*sym_q[7]) 2*(sym_q[4]*sym_q[6] - sym_q[5]*sym_q[7]);
-    2*(sym_q[4]*sym_q[5] - sym_q[6]*sym_q[7]) (sym_q[5]^2 - sym_q[4]^2 - sym_q[6]^2 + sym_q[7]^2) 2*(sym_q[5]*sym_q[6] + sym_q[4]*sym_q[7]);
-    2*(sym_q[4]*sym_q[6] + sym_q[5]*sym_q[7]) 2*(sym_q[5]*sym_q[6] - sym_q[4]*sym_q[7]) sym_q[6]^2 - sym_q[4]^2 - sym_q[5]^2 + sym_q[7]^2
-]
+A_1 = quaternion2dcm(sym_q[4:7])
 
 # Body 1の原点から拘束点への相対位置ベクトル
 u_bar_1 = [0, -s1, 0]
