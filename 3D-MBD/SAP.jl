@@ -86,8 +86,12 @@ end
 """
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
+    # Roll, Pitch, Yaw角を計算する．
+    RPY_angle = quaternion2euler(state[4:7])
+
+    # 力の計算
     force = [0.1, 0.1, 0.1]
-    torque = transpose(G_bar(state[4:7])) * [0.25, 0.05, 0.05]
+    torque = transpose(G_bar(state[4:7])) * diagm([-0.25, -0.25, -0.25]) * RPY_angle
     
     Q = SVector{7}(vcat(force, torque))
     
@@ -157,7 +161,7 @@ function main()
     # Static simulation
     println("Begin static analysis")
 
-    dcm = C1(0.0)
+    dcm = C1(pi/4)
 
     init_transposi = dcm * [0, 0.5, 0]
     init_eulerparam = dcm2quaternion(dcm)
