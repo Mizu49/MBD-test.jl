@@ -17,30 +17,41 @@ I2 = m2 * l2^2 / 12
 g = 9.81
 
 # ボディの数と一般化座標の次元を定義
-num_bodies = 1
-dim_coordinate = 7
+const num_bodies = 2
+const dim_coordinate = 7
+const dim_q = num_bodies * dim_coordinate
 
 # シンボリック変数の定義
-@variables t, sym_q[1:(dim_coordinate * num_bodies)], sym_qdot[1:(dim_coordinate * num_bodies)]
+@variables t, sym_q[1:dim_q], sym_qdot[1:dim_q]
 sym_q = collect(sym_q)
 sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
 A_1 = quaternion2dcm(sym_q[4:7])
+A_2 = quaternion2dcm(sym_q[11:14])
 
 # Body 1の原点から拘束点への相対位置ベクトル
 u_bar_1 = [0, -s1, 0]
+u_bar_2 = [0, -s2, 0]
 
 # 拘束条件のシンボリック表現
 constraints_1 = [
-    sym_q[1:3] + A_1 * u_bar_1 - (zeros(3)) # 位置に対する拘束
+    sym_q[1:3] + A_1 * u_bar_1 - (zeros(3)) # Revoluteジョイント位置に対する拘束
     transpose([1, 0, 0]) * (A_1 * [0, 1, 0]) # Revolute joint 1
     transpose([1, 0, 0]) * (A_1 * [0, 0, 1]) # Revolute joint 2
-    transpose(sym_q[1:3]) * sym_q[1:3] - s1^2
+    transpose(sym_q[1:3]) * sym_q[1:3] - s1^2 # 絶対位置に対する拘束
 ]
 
+constraints_2 = [
+    sym_q[8:10] + A_2 * u_bar_2 - (sym_q[1:3] + A_1 * (-u_bar_1)) # Revoluteジョイント位置に対する拘束
+    transpose([1, 0, 0]) * (A_2 * [0, 1, 0]) # Revolute joint 1
+    transpose([1, 0, 0]) * (A_2 * [0, 0, 1]) # Revolute joint 2
+    transpose(sym_q[8:10] - (sym_q[1:3] + A_1 * (-u_bar_1))) * (sym_q[8:10] - (sym_q[1:3] + A_1 * (-u_bar_1))) - s2^2 # 絶対位置に対する拘束（隣のボディとの結節点からの回転範囲内）
+]
+
+
 # 拘束条件をまとめる
-C = vcat(constraints_1)
+C = vcat(constraints_1, constraints_2)
 
 # 時間微分オペレータ
 D = Differential(t)
@@ -77,14 +88,20 @@ end
 
 # システムの質量行列
 function func_global_mass(q::AbstractVector)
-    
+
+    # body 1
     m_trans = diagm([m1, m1, m1])
-
     m_rot = transpose(G_bar(q[4:7])) * diagm([I1, I1, I1]) * G_bar(q[4:7])
+    M_body1 = BlockDiagonal([m_trans, m_rot])
 
-    globalM = SMatrix{7, 7}(BlockDiagonal([m_trans, m_rot]))
+    # body 2
+    m_trans = diagm([m2, m2, m2])
+    m_rot = transpose(G_bar(q[11:14])) * diagm([I2, I2, I2]) * G_bar(q[11:14])
+    M_body2 = BlockDiagonal([m_trans, m_rot])
 
-    return globalM
+    M_global = SMatrix{dim_q, dim_q}(BlockDiagonal([M_body1, M_body2]))
+
+    return M_global
 end
 
 
@@ -93,23 +110,30 @@ end
 """
 function func_external_force(time::Real, state::AbstractVector)::SVector
 
-    # Roll, Pitch, Yaw角を計算する．
-    RPY_angle = quaternion2euler(state[4:7])
+    # body 1
+    body1_RPY = quaternion2euler(state[4:7])
+    body1_force = [0.0, 0.0, 0.0]
+    # body1_torque = transpose(G_bar(state[4:7])) * diagm([-0.25, -0.25, -0.25]) * body1_RPY
+    body1_torque = transpose(G_bar(state[4:7])) * [0.5, 0, 0]
+    Q_body1 = vcat(body1_force, body1_torque)
+    
+    # body 2
+    body2_RPY = quaternion2euler(state[11:14])
+    body2_force = [0.0, 0.0, 0.0]
+    # body2_torque = transpose(G_bar(state[11:14])) * diagm([-0.25, -0.25, -0.25]) * body2_RPY
+    body2_torque = transpose(G_bar(state[11:14])) * zeros(3)
+    Q_body2 = vcat(body2_force, body2_torque)
 
-    # 力の計算
-    force = [0.1, 0.1, 0.1]
-    torque = transpose(G_bar(state[4:7])) * diagm([-0.25, -0.25, -0.25]) * RPY_angle
-    
-    Q = SVector{7}(vcat(force, torque))
-    
+    Q = SVector{dim_q}(vcat(Q_body1, Q_body2))
+
     return Q
 end
 
 function EOM(time, state)
     
     # 状態量をパースする
-    q    = SVector{dim_coordinate}(state[1:dim_coordinate])
-    qdot = SVector{dim_coordinate}(state[(dim_coordinate+1):end])
+    q    = SVector{dim_q}(state[1:dim_q])
+    qdot = SVector{dim_q}(state[(dim_q+1):end])
 
     # 一般化質量行列
     M = func_global_mass(q)
@@ -145,7 +169,7 @@ function EOM(time, state)
 
     # 微分方程式の時間発展計算する 
     # qdot qddot
-    differential = vcat(qdot, accel_lambda[1:dim_coordinate])
+    differential = vcat(qdot, accel_lambda[1:dim_q])
 
     return differential
 end
@@ -166,10 +190,17 @@ end
 function main()
 
     # 初期値の計算
-    init_RPY = [pi/4, 0, 0]
-    init_transposi = euler2dcm(init_RPY) * [0, 0.5, 0]
-    init_eulerparam = euler2quaternion(init_RPY)
-    init_q = vcat(init_transposi, init_eulerparam)
+    init_body1_RPY = [pi/4, 0, 0]
+    init_body1_transposi = euler2dcm(init_body1_RPY) * [0, 0.5, 0]
+    init_body1_quaternion = euler2quaternion(init_body1_RPY)
+    init_q1 = vcat(init_body1_transposi, init_body1_quaternion)
+
+    init_body2_RPY = [0, 0, 0]
+    init_body2_transposi = euler2dcm(init_body2_RPY) * [0, l1 + 0.5, 0]
+    init_body2_quaternion = euler2quaternion(init_body2_RPY)
+    init_q2 = vcat(init_body2_transposi, init_body2_quaternion)
+
+    init_q = vcat(init_q1, init_q2)
 
     # Static simulation with Newton-Raphson method
     print("Begin static analysis...")
@@ -207,9 +238,9 @@ function main()
 
     datanum = Integer(timelength / Ts + 1)
     times = 0.0:Ts:timelength
-    states = [SVector{dim_coordinate * 2}(zeros(dim_coordinate * 2)) for _ in 1:datanum]
-    states[1] = vcat(init_q, zeros(dim_coordinate))
-    accel = [SVector{dim_coordinate}(zeros(dim_coordinate)) for _ in 1:datanum]
+    states = [SVector{dim_q * 2}(zeros(dim_q * 2)) for _ in 1:datanum]
+    states[1] = vcat(init_q, zeros(dim_q))
+    accel = [SVector{dim_q}(zeros(dim_q)) for _ in 1:datanum]
 
     print("Running dynamics simulation ...")
     simtime = @elapsed for idx = 1:datanum-1
@@ -223,7 +254,7 @@ function main()
     end
     println("done!")
 
-    # plot of x, y, z position
+    # plot of x, y, z position for body 1
     fig1 = Figure()
     ax1 = Axis(
         fig1[1, 1],
@@ -240,7 +271,24 @@ function main()
     lines!(ax1, times, z_position, label = "z-position")
     axislegend(ax1)
 
-    figures = [fig1]
+    # plot of x, y, z position for body 2
+    fig2 = Figure()
+    ax2 = Axis(
+        fig2[1, 1],
+        xlabel = "Time (s)",
+        ylabel = "Position (m)"
+    )
+
+    x_position = getindex.(states, 8)
+    y_position = getindex.(states, 9)
+    z_position = getindex.(states, 10)
+
+    lines!(ax2, times, x_position, label = "x-position")
+    lines!(ax2, times, y_position, label = "y-position")
+    lines!(ax2, times, z_position, label = "z-position")
+    axislegend(ax2)
+
+    figures = [fig1, fig2]
 
     return (times, states, figures)
 end
@@ -249,3 +297,4 @@ end
 
 Makie.inline!(true)
 display(figures[1])
+display(figures[2])
