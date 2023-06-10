@@ -40,7 +40,7 @@ function polygon_plate(pos::AbstractVector, p::PolygonPlate)
     return (points, faces)
 end
 
-params = PolygonPlate(l1, l1, 0.01)
+params = PolygonPlate(l1, l1, 0.05)
 
 q = states[5000]
 (points, faces) = polygon_plate(q, params)
