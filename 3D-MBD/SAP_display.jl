@@ -1,25 +1,30 @@
 using GLMakie, GeometryBasics
 
-struct PolygonPlate
+struct PlateParameters
     a::Real # x-direction length
     b::Real # y-direction length
     t::Real # z-direction length (thickness)
 end
 
+struct PlatePolygon
+    points
+    faces
+end
 
-function polygon_plate(pos::AbstractVector, p::PolygonPlate)
+
+function PlatePolygon(coordinate::AbstractVector, p::PlateParameters)
    
-    C = quaternion2dcm(pos[4:7])
+    C = quaternion2dcm(coordinate[4:7])
 
     points = hcat(
-        pos[1:3] + C * [-p.a/2, -p.b/2, +p.t/2],
-        pos[1:3] + C * [-p.a/2, +p.b/2, +p.t/2],
-        pos[1:3] + C * [+p.a/2, +p.b/2, +p.t/2],
-        pos[1:3] + C * [+p.a/2, -p.b/2, +p.t/2],
-        pos[1:3] + C * [-p.a/2, -p.b/2, -p.t/2],
-        pos[1:3] + C * [-p.a/2, +p.b/2, -p.t/2],
-        pos[1:3] + C * [+p.a/2, +p.b/2, -p.t/2],
-        pos[1:3] + C * [+p.a/2, -p.b/2, -p.t/2]
+        coordinate[1:3] + C * [-p.a/2, -p.b/2, +p.t/2],
+        coordinate[1:3] + C * [-p.a/2, +p.b/2, +p.t/2],
+        coordinate[1:3] + C * [+p.a/2, +p.b/2, +p.t/2],
+        coordinate[1:3] + C * [+p.a/2, -p.b/2, +p.t/2],
+        coordinate[1:3] + C * [-p.a/2, -p.b/2, -p.t/2],
+        coordinate[1:3] + C * [-p.a/2, +p.b/2, -p.t/2],
+        coordinate[1:3] + C * [+p.a/2, +p.b/2, -p.t/2],
+        coordinate[1:3] + C * [+p.a/2, -p.b/2, -p.t/2]
     )
     
     faces = [
@@ -37,15 +42,40 @@ function polygon_plate(pos::AbstractVector, p::PolygonPlate)
         3 6 7
     ]
     
-    return (points, faces)
+    return PlatePolygon(points, faces)
 end
 
-params = PolygonPlate(l1, l1, 0.05)
+function update_polygon!(polygon::PlatePolygon, p::PlateParameters, coordinate::AbstractVector)
 
-q = states[5000]
-(points, faces) = polygon_plate(q, params)
+    C = quaternion2dcm(coordinate[4:7])
 
-obs_points = Observable(points)
+    points = hcat(
+        coordinate[1:3] + C * [-p.a/2, -p.b/2, +p.t/2],
+        coordinate[1:3] + C * [-p.a/2, +p.b/2, +p.t/2],
+        coordinate[1:3] + C * [+p.a/2, +p.b/2, +p.t/2],
+        coordinate[1:3] + C * [+p.a/2, -p.b/2, +p.t/2],
+        coordinate[1:3] + C * [-p.a/2, -p.b/2, -p.t/2],
+        coordinate[1:3] + C * [-p.a/2, +p.b/2, -p.t/2],
+        coordinate[1:3] + C * [+p.a/2, +p.b/2, -p.t/2],
+        coordinate[1:3] + C * [+p.a/2, -p.b/2, -p.t/2]
+    )
+
+    # modify array
+    polygon.points[:] = points
+
+    return    
+end
+
+# specify the dimension of the plates
+thickness = 0.01
+plate1_params = PlateParameters(l1, l1, thickness)
+
+# create inital polygon
+q = states[1]
+plate1_polygon = PlatePolygon(q, plate1_params)
+
+# make observables
+plate1_obs_points = Observable(plate1_polygon.points)
 
 fig = Figure()
 ax = Axis3(
@@ -68,15 +98,15 @@ lines!(ax, [0.0, 0.0], [-1.2, 1.2], [0.0, 0.0], linestyle = :dash, color = :blac
 lines!(ax, [0.0, 0.0], [0.0, 0.0], [-1.2, 1.2], linestyle = :dash, color = :black, linewidth = 1)
 
 # 平板のプロットを実行
-mesh!(ax, obs_points, faces, color=:blue, shading = true)
+mesh!(ax, plate1_obs_points, plate1_polygon.faces, color=:blue, shading = true)
 
 iter = 1:100:size(states, 1)
 record(fig, "animation.gif", iter, framerate = 15) do idx
 
     q = states[idx]
-    (points, faces) = polygon_plate(q, params)
+    update_polygon!(plate1_polygon, plate1_params, q)
 
     ax.title = "Time: $(times[idx]) (s)"
 
-    obs_points[] = points
+    plate1_obs_points[] = plate1_polygon.points
 end
