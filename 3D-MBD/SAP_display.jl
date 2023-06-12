@@ -66,16 +66,26 @@ function update_polygon!(polygon::PlatePolygon, coordinate::AbstractVector)
     return    
 end
 
+# numbers of the bodies
+num_bodies = 2
+
 # specify the dimension of the plates
 thickness = 0.05
-plate1_params = PlateParameters(l1, l1, thickness)
+plate_params = [
+    PlateParameters(l1, l1, thickness)
+    PlateParameters(l2, l2, thickness)
+]
 
 # create inital polygon
-q = states[1]
-plate1_polygon = PlatePolygon(q, plate1_params)
+currentstate = states[1]
+plate_polygons = [
+    PlatePolygon(currentstate[(1+7*idx):(7+7*idx)], plate_params[idx+1]) for idx in 0:num_bodies-1
+]
 
 # make observables
-plate1_obs_points = Observable(plate1_polygon.points)
+plate_obs_points = [
+    Observable(plate_polygons[idx].points) for idx in 1:num_bodies
+]
 
 fig = Figure()
 ax = Axis3(
@@ -98,15 +108,19 @@ lines!(ax, [0.0, 0.0], [-1.2, 1.2], [0.0, 0.0], linestyle = :dash, color = :blac
 lines!(ax, [0.0, 0.0], [0.0, 0.0], [-1.2, 1.2], linestyle = :dash, color = :black, linewidth = 1)
 
 # 平板のプロットを実行
-mesh!(ax, plate1_obs_points, plate1_polygon.faces, color=:blue, shading = true)
+for idx = 1:num_bodies 
+    mesh!(ax, plate_obs_points[idx], plate_polygons[idx].faces, color=(:blue, 0.3), shading = true)
+end
 
 iter = 1:100:size(states, 1)
 record(fig, "animation.gif", iter, framerate = 15) do idx
 
-    q = states[idx]
-    update_polygon!(plate1_polygon, q)
+    currentstate = states[idx]
+    for idx = 0:num_bodies-1
+        update_polygon!(plate_polygons[idx+1], currentstate[(1+7*idx):(7+7*idx)])
+        plate_obs_points[idx+1][] = plate_polygons[idx+1].points
+    end
 
     ax.title = "Time: $(times[idx]) (s)"
 
-    plate1_obs_points[] = plate1_polygon.points
 end
