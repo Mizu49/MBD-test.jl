@@ -123,7 +123,7 @@ calculate quaternion from direction cosine matrix (DCM) `dcm`
         error("`maxindex` is illegal")
     end
 
-    return SVector{4}([q[4], q[1], q[2], q[3]])
+    return SVector{4}(q)
 end
 
 @inline function dcm2quaternion(dcm::Matrix{Num})::Vector{Num}
@@ -143,18 +143,7 @@ calculate direction cosine matrix from the vector of z-y-x eular angles.
 * `euler::Union{SVector{3, <:Real}, Vector{<:Real}}`: each element represents the rotation with z, y, x axis, respectively
 """
 @inline function euler2dcm(euler::Union{SVector{3, <:Real}, Vector{<:Real}})::SMatrix{3, 3, Float64}
-    s1 = sin(euler[1])
-    s2 = sin(euler[2])
-    s3 = sin(euler[3])
-    c1 = cos(euler[1])
-    c2 = cos(euler[2])
-    c3 = cos(euler[3])
-
-    dcm = SMatrix{3, 3, Float64}([
-        c2*c3 c2*s3 -s2;
-        (-c1*s3 + s1*s2*c3) (c1*c3 + s1*s2*s3) s1*c2;
-        (s1*s3 + c1*s2*c3) (-s1*c3 + c1*s2*s3) c1*c2
-    ])
+    return C1(euler[1]) * C2(euler[2]) * C3(euler[3])
 end
 
 """
