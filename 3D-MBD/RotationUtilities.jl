@@ -1,6 +1,6 @@
 module RotationUtilities
 
-using Symbolics, StaticArrays
+using LinearAlgebra, Symbolics, StaticArrays
 
 export C1, C2, C3, G, G_bar, dcm2quaternion, dcm2euler, euler2dcm, euler2quaternion, quaternion2dcm, quaternion2euler
 
@@ -12,16 +12,16 @@ Rotational matrix for 1-axis
 @inline function C1(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
         1 0 0
-        0 cos(theta) -sin(theta)
-        0 sin(theta) cos(theta)
+        0 cos(theta) sin(theta)
+        0 -sin(theta) cos(theta)
     ])
 end
 
 @inline function C1(theta::Num)::Matrix{Num}
     return [
         1 0 0
-        0 cos(theta) -sin(theta)
-        0 sin(theta) cos(theta)
+        0 cos(theta) sin(theta)
+        0 -sin(theta) cos(theta)
     ]
 end
 
@@ -33,17 +33,17 @@ Rotational matrix for 2-axis
 """
 @inline function C2(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
-        cos(theta) 0 sin(theta)
+        cos(theta) 0 -sin(theta)
         0 1 0
-        -sin(theta) 0 cos(theta)
+        sin(theta) 0 cos(theta)
     ])
 end
 
 @inline function C2(theta::Num)::Matrix{Num}
     return [
-        cos(theta) 0 sin(theta)
+        cos(theta) 0 -sin(theta)
         0 1 0
-        -sin(theta) 0 cos(theta)
+        sin(theta) 0 cos(theta)
     ]
 end
 
@@ -54,34 +54,42 @@ Rotational matrix for 3-axis
 """
 @inline function C3(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
-        cos(theta) -sin(theta) 0
-        sin(theta) cos(theta) 0
+        cos(theta) sin(theta) 0
+        -sin(theta) cos(theta) 0
         0 0 1
     ])
 end
 
 @inline function C3(theta::Num)::Matrix{Num}
     return [
-        cos(theta) -sin(theta) 0
-        sin(theta) cos(theta) 0
+        cos(theta) sin(theta) 0
+        -sin(theta) cos(theta) 0
         0 0 1
     ]
 end
 
-@inline function G(q::Vector)
-    return SMatrix{3, 4}(2 * [
-        -q[2] q[1] -q[4] q[3]
-        -q[3] q[4] q[1] -q[2]
-        -q[4] -q[3] q[2] q[1]
+@inline function Base.:~(x::AbstractVector)
+    return SMatrix{3, 3, <:Real}([
+        0 -x[3] x[2]
+        x[3] 0 -x[1]
+        -x[2] x[1] 0
     ])
 end
 
+@inline function E(q::Vector{<:Real})
+    return SMatrix{3, 4}(hcat(q[4] * I + ~(q[1:3]), -q[1:3]))
+end
+
+@inline function E_bar(q::Vector{<:Real})
+    return SMatrix{3, 4}(hcat(q[4] * I - ~(q[1:3]), -q[1:3]))
+end
+
+@inline function G(q::Vector)
+    return 2 * E(q)
+end
+
 @inline function G_bar(q::Vector)
-    return SMatrix{3, 4}(2 * [
-        -q[2] q[1] q[4] -q[3]
-        -q[3] -q[4] q[1] q[2]
-        -q[4] q[3] -q[2] q[1]
-    ])
+    return 2 * E_bar(q)
 end
 
 
@@ -143,7 +151,7 @@ calculate direction cosine matrix from the vector of z-y-x eular angles.
 * `euler::Union{SVector{3, <:Real}, Vector{<:Real}}`: each element represents the rotation with z, y, x axis, respectively
 """
 @inline function euler2dcm(euler::Union{SVector{3, <:Real}, Vector{<:Real}})::SMatrix{3, 3, Float64}
-    return C1(euler[1]) * C2(euler[2]) * C3(euler[3])
+    return C3(euler[3]) * C2(euler[2]) * C1(euler[1])
 end
 
 """
@@ -154,9 +162,9 @@ calculates direction cosine matrix from quaternion
 @inline function quaternion2dcm(q::Union{Vector{<:Real}, SVector{4, <:Real}})::SMatrix{3, 3, Float64}
     q2 = q.^2;
     dcm = SMatrix{3, 3}([
-        (q2[1] + q2[2] - q2[3] - q2[4]) 2*(q[2]*q[3] - q[1]*q[4]) 2*(q[2]*q[4] + q[1]*q[3])
-        2*(q[2]*q[3] + q[1]*q[4]) (q2[1] - q2[2] + q2[3] - q2[4]) 2*(q[3]*q[4] - q[1]*q[2])
-        2*(q[2]*q[4] - q[1]*q[3]) 2*(q[3]*q[4] + q[1]*q[2]) q2[1] - q2[2] - q2[3] + q2[4]
+        (q2[1] - q2[2] - q2[3] + q2[4]) 2*(q[1]*q[2] + q[3]*q[4]) 2*(q[1]*q[3] - q[2]*q[4]);
+        2*(q[1]*q[2] - q[3]*q[4]) (q2[2] - q2[1] - q2[3] + q2[4]) 2*(q[2]*q[3] + q[1]*q[4]);
+        2*(q[1]*q[3] + q[2]*q[4]) 2*(q[2]*q[3] - q[1]*q[4]) q2[3] - q2[1] - q2[2] + q2[4]
     ])
     return dcm
 end
@@ -164,9 +172,9 @@ end
 @inline function quaternion2dcm(q::Vector{Num})::Matrix{Num}
     q2 = q.^2;
     dcm = [
-        (q2[1] + q2[2] - q2[3] - q2[4]) 2*(q[2]*q[3] - q[1]*q[4]) 2*(q[2]*q[4] + q[1]*q[3])
-        2*(q[2]*q[3] + q[1]*q[4]) (q2[1] - q2[2] + q2[3] - q2[4]) 2*(q[3]*q[4] - q[1]*q[2])
-        2*(q[2]*q[4] - q[1]*q[3]) 2*(q[3]*q[4] + q[1]*q[2]) q2[1] - q2[2] - q2[3] + q2[4]
+        (q2[1] - q2[2] - q2[3] + q2[4]) 2*(q[1]*q[2] + q[3]*q[4]) 2*(q[1]*q[3] - q[2]*q[4]);
+        2*(q[1]*q[2] - q[3]*q[4]) (q2[2] - q2[1] - q2[3] + q2[4]) 2*(q[2]*q[3] + q[1]*q[4]);
+        2*(q[1]*q[3] + q[2]*q[4]) 2*(q[2]*q[3] - q[1]*q[4]) q2[3] - q2[1] - q2[2] + q2[4]
     ]
     return dcm
 end

@@ -110,9 +110,7 @@ function func_external_force(time::Real, state::AbstractVector)::SVector
     Q_body2 = vcat(body2_force, body2_torque)
 
     Q = SVector{dim_q}(vcat(Q_body1, Q_body2))
-
-    println(diagm([-0.25, -0.25, -0.25]) * body1_RPY)
-
+    
     return Q
 end
 
@@ -176,10 +174,10 @@ end
 
 function main()
 
-    # 初期値の計算
-    init_body1_RPY = [pi/4, 0, 0]
-    init_body1_transposi = euler2dcm(init_body1_RPY) * [0, 0.5, 0]
-    init_body1_quaternion = euler2quaternion(init_body1_RPY)
+    # 一般化座標＠グローバルの初期値計算
+    init_body1_RPY = [pi/4, 0, 0] # 物体変換で規定
+    init_body1_transposi = transpose(euler2dcm(init_body1_RPY)) * [0, 0.5, 0] # Localでの位置をGlobalでの位置に変換するときは座標変換行列の転置をつかう！
+    init_body1_quaternion = euler2quaternion(init_body1_RPY) # 姿勢表現
     init_q1 = vcat(init_body1_transposi, init_body1_quaternion)
 
     init_body2_RPY = [0, 0, 0]
