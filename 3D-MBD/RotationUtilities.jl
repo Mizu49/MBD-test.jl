@@ -12,16 +12,16 @@ Rotational matrix for 1-axis
 @inline function C1(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
         1 0 0
-        0 cos(theta) -sin(theta)
-        0 sin(theta) cos(theta)
+        0 cos(theta) sin(theta)
+        0 -sin(theta) cos(theta)
     ])
 end
 
 @inline function C1(theta::Num)::Matrix{Num}
     return [
         1 0 0
-        0 cos(theta) -sin(theta)
-        0 sin(theta) cos(theta)
+        0 cos(theta) sin(theta)
+        0 -sin(theta) cos(theta)
     ]
 end
 
@@ -33,17 +33,17 @@ Rotational matrix for 2-axis
 """
 @inline function C2(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
-        cos(theta) 0 sin(theta)
+        cos(theta) 0 -sin(theta)
         0 1 0
-        -sin(theta) 0 cos(theta)
+        sin(theta) 0 cos(theta)
     ])
 end
 
 @inline function C2(theta::Num)::Matrix{Num}
     return [
-        cos(theta) 0 sin(theta)
+        cos(theta) 0 -sin(theta)
         0 1 0
-        -sin(theta) 0 cos(theta)
+        sin(theta) 0 cos(theta)
     ]
 end
 
@@ -54,16 +54,16 @@ Rotational matrix for 3-axis
 """
 @inline function C3(theta::Real)::SMatrix
     return SMatrix{3, 3, <:Real}([
-        cos(theta) -sin(theta) 0
-        sin(theta) cos(theta) 0
+        cos(theta) sin(theta) 0
+        -sin(theta) cos(theta) 0
         0 0 1
     ])
 end
 
 @inline function C3(theta::Num)::Matrix{Num}
     return [
-        cos(theta) -sin(theta) 0
-        sin(theta) cos(theta) 0
+        cos(theta) sin(theta) 0
+        -sin(theta) cos(theta) 0
         0 0 1
     ]
 end
@@ -188,7 +188,7 @@ calculates z-y-x euler rotation angle from direction cosine matrix
 @inline function dcm2euler(dcm::Union{SMatrix{3, 3, <:Real}, Matrix{<:Real}})::SVector{3, <:Real}
     _checkdcm(dcm)
     # 3-2-1 euler angle (roll-pitch-yaw)
-    euler = SVector{3}(-[
+    euler = SVector{3}([
         atan(dcm[2,3], dcm[3,3]),
         atan(-dcm[1,3], sqrt(dcm[2,3]^2 + dcm[3,3]^2)),
         atan(dcm[1,2], dcm[1,1])
@@ -199,7 +199,7 @@ end
 @inline function dcm2euler(dcm::Matrix{Num})::Vector{Num}
     _checkdcm(dcm)
     # 3-2-1 euler angle (roll-pitch-yaw)
-    euler = -[
+    euler = [
         atan(dcm[2,3], dcm[3,3]),
         atan(-dcm[1,3], sqrt(dcm[2,3]^2 + dcm[3,3]^2)),
         atan(dcm[1,2], dcm[1,1])

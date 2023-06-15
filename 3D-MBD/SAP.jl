@@ -98,7 +98,7 @@ function func_external_force(time::Real, state::AbstractVector)::SVector
     # body 1
     body1_RPY = quaternion2euler(state[4:7])
     body1_force = [0.0, 0.0, 0.0]
-    body1_torque = transpose(G(state[4:7])) * diagm([0.25, 0.25, 0.25]) * body1_RPY
+    body1_torque = transpose(G(state[4:7])) * diagm([-0.25, -0.25, -0.25]) * body1_RPY
     # body1_torque = transpose(G_bar(state[4:7])) * [0.5, 0, 0]
     Q_body1 = vcat(body1_force, body1_torque)
     
@@ -110,9 +110,7 @@ function func_external_force(time::Real, state::AbstractVector)::SVector
     Q_body2 = vcat(body2_force, body2_torque)
 
     Q = SVector{dim_q}(vcat(Q_body1, Q_body2))
-
-    println(body1_RPY)
-
+    
     return Q
 end
 
