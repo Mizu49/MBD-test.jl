@@ -2,7 +2,7 @@ module RotationUtilities
 
 using LinearAlgebra, Symbolics, StaticArrays
 
-export C1, C2, C3, G, G_bar, dcm2quaternion, dcm2euler, euler2dcm, euler2quaternion, quaternion2dcm, quaternion2euler
+export C1, C2, C3, error_quaternion, G, G_bar, dcm2quaternion, dcm2euler, euler2dcm, euler2quaternion, quaternion2dcm, quaternion2euler
 
 """
     C1(theta::Real)::SMatrix
@@ -66,6 +66,17 @@ end
         -sin(theta) cos(theta) 0
         0 0 1
     ]
+end
+
+@inline function conj_quaternion(q::Vector)
+    return [
+        q[4] * I - ~(q[1:3]) -q[1:3]
+        transpose(q[1:3])    q[4]
+    ]
+end
+
+@inline function error_quaternion(q1::Vector, q2::Vector)
+    return conj_quaternion(q1) * q2
 end
 
 @inline function Base.:~(x::AbstractVector)

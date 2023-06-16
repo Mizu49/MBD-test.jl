@@ -110,6 +110,9 @@ function func_external_force(time::Real, state::AbstractVector)::SVector
     Q_body2 = vcat(body2_force, body2_torque)
 
     Q = SVector{dim_q}(vcat(Q_body1, Q_body2))
+
+    error_q = error_quaternion(state[4:7], state[11:14])
+    println(quaternion2euler(error_q))
     
     return Q
 end
