@@ -180,8 +180,8 @@ function main()
     init_body1_quaternion = euler2quaternion(init_body1_RPY) # 姿勢表現
     init_q1 = vcat(init_body1_transposi, init_body1_quaternion)
 
-    init_body2_RPY = [0, 0, 0]
-    init_body2_transposi = euler2dcm(init_body2_RPY) * [0, l1 + 0.5, 0]
+    init_body2_RPY = [pi/6, 0, 0]
+    init_body2_transposi = init_body1_transposi + transpose(euler2dcm(init_body1_RPY)) * [0, 0.5, 0] + transpose(euler2dcm(init_body2_RPY)) * [0, 0.5, 0]
     init_body2_quaternion = euler2quaternion(init_body2_RPY)
     init_q2 = vcat(init_body2_transposi, init_body2_quaternion)
 
