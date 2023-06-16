@@ -27,8 +27,8 @@ sym_q = collect(sym_q)
 sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
-A_1 = quaternion2dcm(sym_q[4:7])
-A_2 = quaternion2dcm(sym_q[11:14])
+A_1 = transpose(quaternion2dcm(sym_q[4:7]))
+A_2 = transpose(quaternion2dcm(sym_q[11:14]))
 
 # Body 1の原点から拘束点への相対位置ベクトル
 u_bar_1 = [0, -s1, 0]

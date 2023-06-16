@@ -10,7 +10,7 @@ export C1, C2, C3, G, G_bar, dcm2quaternion, dcm2euler, euler2dcm, euler2quatern
 Rotational matrix for 1-axis
 """
 @inline function C1(theta::Real)::SMatrix
-    return SMatrix{3, 3, <:Real}([
+    return SMatrix{3, 3, Float64}([
         1 0 0
         0 cos(theta) sin(theta)
         0 -sin(theta) cos(theta)
@@ -32,7 +32,7 @@ end
 Rotational matrix for 2-axis
 """
 @inline function C2(theta::Real)::SMatrix
-    return SMatrix{3, 3, <:Real}([
+    return SMatrix{3, 3, Float64}([
         cos(theta) 0 -sin(theta)
         0 1 0
         sin(theta) 0 cos(theta)
@@ -53,7 +53,7 @@ end
 Rotational matrix for 3-axis
 """
 @inline function C3(theta::Real)::SMatrix
-    return SMatrix{3, 3, <:Real}([
+    return SMatrix{3, 3, Float64}([
         cos(theta) sin(theta) 0
         -sin(theta) cos(theta) 0
         0 0 1
@@ -69,7 +69,7 @@ end
 end
 
 @inline function Base.:~(x::AbstractVector)
-    return SMatrix{3, 3, <:Real}([
+    return SMatrix{3, 3, Float64}([
         0 -x[3] x[2]
         x[3] 0 -x[1]
         -x[2] x[1] 0
@@ -98,7 +98,7 @@ end
 
 calculate quaternion from direction cosine matrix (DCM) `dcm`
 """
-@inline function dcm2quaternion(dcm::SMatrix{3, 3, Float64})::SVector{4, Real}
+@inline function dcm2quaternion(dcm::SMatrix{3, 3, Float64})::SVector{4, Float64}
 
     _checkdcm(dcm)
 
@@ -181,11 +181,11 @@ end
 
 
 """
-    dcm2euler(dcm::Union{SMatrix{3, 3, <:Real}, Matrix{<:Real}})::SVector{3, <:Real}
+    dcm2euler(dcm::Union{SMatrix{3, 3, Float64}, Matrix{<:Real}})::SVector{3, <:Real}
 
 calculates z-y-x euler rotation angle from direction cosine matrix
 """
-@inline function dcm2euler(dcm::Union{SMatrix{3, 3, <:Real}, Matrix{<:Real}})::SVector{3, <:Real}
+@inline function dcm2euler(dcm::Union{SMatrix{3, 3, Float64}, Matrix{<:Real}})::SVector{3, Float64}
     _checkdcm(dcm)
     # 3-2-1 euler angle (roll-pitch-yaw)
     euler = SVector{3}([
@@ -212,7 +212,7 @@ end
 
 calculates z-y-x euler rotation angle from quaternion
 """
-@inline function quaternion2euler(quaternion::Union{Vector{<:Real}, SVector{4, <:Real}})::SVector{3, <:Real}
+@inline function quaternion2euler(quaternion::Union{Vector{<:Real}, SVector{4, <:Real}})::SVector{3, Float64}
 
     # use DCM for the calculation
     euler = dcm2euler(quaternion2dcm(quaternion))
@@ -233,7 +233,7 @@ end
 
 calculates quaternion from z-y-x euler rotation angle
 """
-@inline function euler2quaternion(euler::Union{SVector{3, <:Real}, Vector{<:Real}})::SVector{4, Real}
+@inline function euler2quaternion(euler::Union{SVector{3, <:Real}, Vector{<:Real}})::SVector{4, Float64}
 
     # use DCM for the calculation
     quaternion = dcm2quaternion(euler2dcm(euler))
@@ -249,7 +249,7 @@ end
     return quaternion
 end
 
-@inline function _checkdcm(dcm::Union{SMatrix{3, 3, <:Real}, Matrix{<:Real}})
+@inline function _checkdcm(dcm::Union{SMatrix{3, 3, Float64}, Matrix{<:Real}})
     if size(dcm) != (3, 3)
         throw(ArgumentError("`dcm` should be `3x3` matrix"))
     end
