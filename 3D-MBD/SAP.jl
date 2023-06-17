@@ -27,8 +27,8 @@ sym_q = collect(sym_q)
 sym_qdot = collect(sym_qdot)
 
 # オイラーパラメータ -> BRF
-A_1 = quaternion2dcm(sym_q[4:7])
-A_2 = quaternion2dcm(sym_q[11:14])
+A_1 = transpose(quaternion2dcm(sym_q[4:7]))
+A_2 = transpose(quaternion2dcm(sym_q[11:14]))
 
 # Body 1の原点から拘束点への相対位置ベクトル
 u_bar_1 = [0, -s1, 0]
@@ -98,15 +98,17 @@ function func_external_force(time::Real, state::AbstractVector)::SVector
     # body 1
     body1_RPY = quaternion2euler(state[4:7])
     body1_force = [0.0, 0.0, 0.0]
-    body1_torque = transpose(G(state[4:7])) * diagm([-0.25, -0.25, -0.25]) * body1_RPY
+    body1_torque = transpose(G(state[4:7])) * diagm([-0.5, -0.5, -0.5]) * body1_RPY
     # body1_torque = transpose(G_bar(state[4:7])) * [0.5, 0, 0]
     Q_body1 = vcat(body1_force, body1_torque)
     
+    error_q = error_quaternion(state[4:7], state[11:14])
+    body12body2_RPY = quaternion2euler(error_q)
+
     # body 2
-    body2_RPY = quaternion2euler(state[11:14])
     body2_force = [0.0, 0.0, 0.0]
-    # body2_torque = transpose(G(state[11:14])) * diagm([-5, -5, -5]) * body2_RPY
-    body2_torque = transpose(G(state[11:14])) * zeros(3)
+    body2_torque = transpose(G(state[11:14])) * diagm([-0.5, -0.5, -0.5]) * body12body2_RPY
+    # body2_torque = transpose(G(state[11:14])) * zeros(3)
     Q_body2 = vcat(body2_force, body2_torque)
 
     Q = SVector{dim_q}(vcat(Q_body1, Q_body2))
@@ -180,8 +182,8 @@ function main()
     init_body1_quaternion = euler2quaternion(init_body1_RPY) # 姿勢表現
     init_q1 = vcat(init_body1_transposi, init_body1_quaternion)
 
-    init_body2_RPY = [0, 0, 0]
-    init_body2_transposi = euler2dcm(init_body2_RPY) * [0, l1 + 0.5, 0]
+    init_body2_RPY = [-pi/4, 0, 0]
+    init_body2_transposi = init_body1_transposi + transpose(euler2dcm(init_body1_RPY)) * [0, 0.5, 0] + transpose(euler2dcm(init_body2_RPY)) * [0, 0.5, 0]
     init_body2_quaternion = euler2quaternion(init_body2_RPY)
     init_q2 = vcat(init_body2_transposi, init_body2_quaternion)
 

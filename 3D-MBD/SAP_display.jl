@@ -14,7 +14,7 @@ end
 
 function PlatePolygon(coordinate::AbstractVector, parameters::PlateParameters)
     
-    C = quaternion2dcm(coordinate[4:7])
+    C = transpose(quaternion2dcm(coordinate[4:7]))
 
     points = SizedMatrix{3, 8}(hcat(
         coordinate[1:3] + C * [-parameters.a/2, -parameters.b/2, +parameters.t/2],
@@ -47,7 +47,7 @@ end
 
 function update_polygon!(polygon::PlatePolygon, coordinate::AbstractVector)
 
-    C = quaternion2dcm(coordinate[4:7])
+    C = transpose(quaternion2dcm(coordinate[4:7]))
 
     points = hcat(
         coordinate[1:3] + C * [-polygon.parameters.a/2, -polygon.parameters.b/2, +polygon.parameters.t/2],
